@@ -4,99 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
-
 <style>
-body {
-  background:#121212;
-  color:white;
-  font-family:system-ui;
-  margin:0;
-  padding:16px;
-}
-.app {
-  max-width:420px;
-  margin:auto;
-}
+body { background:#121212; color:white; font-family:system-ui; margin:0; padding:16px; }
+.app { max-width:420px; margin:auto; }
 h1 { text-align:center; }
-.hint {
-  background:#1e1e1e;
-  padding:14px;
-  border-radius:10px;
-  text-align:center;
-  margin-bottom:16px;
-  font-size:1.1rem;
-}
+.hint { background:#1e1e1e; padding:14px; border-radius:10px; text-align:center; margin-bottom:16px; font-size:1.1rem; }
 .board { display:grid; gap:10px; margin-bottom:16px; }
 .row { display:grid; gap:8px; }
-.cell {
-  background:#1e1e1e;
-  border:2px solid #333;
-  height:56px;
-  font-size:1.6rem;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
+.cell { background:#1e1e1e; border:2px solid #333; height:56px; font-size:1.6rem; display:flex; align-items:center; justify-content:center; font-weight:bold; }
 .correct { background:#4caf50; }
 .present { background:#fbc02d; color:black; }
 .absent { background:#555; }
-
-input, button {
-  width:100%;
-  height:56px;
-  font-size:1.2rem;
-  border-radius:10px;
-  border:none;
-  margin-bottom:10px;
-}
+input, button { width:100%; height:56px; font-size:1.2rem; border-radius:10px; border:none; margin-bottom:10px; }
+input.invalid { border:2px solid #ff4c4c; }
 button { font-weight:bold; }
 .hidden { display:none; }
 #msg { text-align:center; color:#fbc02d; margin-bottom:10px; }
+#stats { margin-top:10px; text-align:center; }
 </style>
 </head>
-
 <body>
 <div class="app">
-
 <h1>Theme Wordle</h1>
-
 <div class="hint" id="hint">Loading…</div>
-
 <div class="board" id="board"></div>
-
 <input id="input" placeholder="Type your word">
 <button id="validate">Validate</button>
-
 <div id="msg"></div>
-
 <button id="copyResult" class="hidden">Copy result</button>
-
+<div id="stats">
+  <div>Played: <span id="played">0</span></div>
+  <div>Won: <span id="won">0</span></div>
+  <div>Win %: <span id="winpercent">0</span>%</div>
+  <div>Win Streak: <span id="streak">0</span></div>
+</div>
 </div>
 
-<script>
-/* ✅ WORD DATA (INLINE FOR SAFETY) */
-const THEMES = {
-  Animals:["DOG","CAT","TIGER","PANDA","KOALA"],
-  Brands:["NIKE","APPLE","ADIDAS","TESLA","SONY"],
-  Objects:["TABLE","PHONE","CHAIR","BOOK","LAMP"],
-  Countries:["FRANCE","CANADA","BRAZIL","JAPAN","ITALY"]
-};
+<!-- INCLUDE YOUR THEME.JS -->
+<script src="theme.js"></script>
 
+<script>
 /* DAILY SEED */
 const seed = Math.floor(Date.now() / 86400000);
 const themeNames = Object.keys(THEMES);
 const theme = themeNames[seed % themeNames.length];
 const word = THEMES[theme][seed % THEMES[theme].length];
-
-document.getElementById("hint").textContent =
-  `HINT: ${theme} • ${word.length} letters`;
+document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
 
 const board = document.getElementById("board");
 const input = document.getElementById("input");
 const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
+const copyBtn = document.getElementById("copyResult");
 
+/* STATS */
+let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
+function updateStatsDisplay(){
+  document.getElementById('played').textContent = stats.played;
+  document.getElementById('won').textContent = stats.won;
+  document.getElementById('streak').textContent = stats.streak;
+  document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
+}
+updateStatsDisplay();
+function updateStats(win){
+  stats.played++;
+  if(win){ stats.won++; stats.streak++; } else stats.streak=0;
+  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
+  updateStatsDisplay();
+}
+
+/* ALL WORDS SET */
+const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
+
+/* BOARD SETUP */
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
@@ -111,42 +91,64 @@ for(let i=0;i<maxTries;i++){
   board.appendChild(row);
 }
 
+/* FILL ROW ANIMATION */
+function fillRow(row, guess){
+  guess.split('').forEach((letter,i)=>{
+    setTimeout(()=>{
+      const cell = row.children[i];
+      cell.textContent = letter;
+      if(letter === word[i]) cell.classList.add("correct");
+      else if(word.includes(letter)) cell.classList.add("present");
+      else cell.classList.add("absent");
+      row.classList.add('shake');
+      setTimeout(()=>row.classList.remove('shake'),200);
+    }, i*600);
+  });
+}
+
+/* VALIDATE WORD */
 validate.onclick = () => {
-  const guess = input.value.toUpperCase();
+  const guess = input.value.toUpperCase().trim();
   if(guess.length !== word.length) return;
 
+  if(!ALL_WORDS.has(guess)){
+    input.classList.add('invalid');
+    msg.textContent = "Word not valid in English!";
+    return;
+  } else {
+    input.classList.remove('invalid');
+    msg.textContent = "";
+  }
+
   const row = board.children[tries];
-  let line = "";
+  fillRow(row, guess);
 
+  let line="";
   [...row.children].forEach((cell,i)=>{
-    cell.textContent = guess[i];
-    if(guess[i] === word[i]){
-      cell.classList.add("correct"); line+="🟩";
-    } else if(word.includes(guess[i])){
-      cell.classList.add("present"); line+="🟨";
-    } else {
-      cell.classList.add("absent"); line+="⬛";
-    }
+    if(guess[i] === word[i]) line+="🟩";
+    else if(word.includes(guess[i])) line+="🟨";
+    else line+="⬛";
   });
-
   emojis.push(line);
+
   tries++;
   input.value="";
 
   if(guess === word || tries === maxTries){
     input.disabled = true;
     validate.disabled = true;
-    document.getElementById("copyResult").classList.remove("hidden");
+    copyBtn.classList.remove("hidden");
+    updateStats(guess===word);
   }
 };
 
-document.getElementById("copyResult").onclick = () => {
-  navigator.clipboard.writeText(
-    `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
-  );
+/* COPY RESULT WITHOUT SPOILER */
+copyBtn.onclick = ()=>{
+  navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
   msg.textContent = "Result copied!";
 };
-</script>
 
+input.addEventListener('keypress', e => { if(e.key==='Enter') validate.click(); });
+</script>
 </body>
 </html>
