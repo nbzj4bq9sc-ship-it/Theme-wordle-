@@ -1,29 +1,144 @@
 const THEMES = {
-    "Animals": ["Dog", "Cat", "Elephant", "Tiger", "Lion", "Panda", "Koala", "Giraffe", "Zebra", "Bear",
-                "Fox", "Wolf", "Rabbit", "Deer", "Horse", "Monkey", "Kangaroo", "Penguin", "Dolphin", "Shark",
-                "Whale", "Otter", "Squirrel", "Raccoon", "Camel", "Sheep", "Goat", "Chicken", "Duck", "Goose"],
-    "Fruits": ["Apple", "Banana", "Orange", "Grape", "Mango", "Strawberry", "Blueberry", "Pineapple", "Peach", "Pear",
-               "Watermelon", "Kiwi", "Lemon", "Lime", "Cherry", "Papaya", "Plum", "Apricot", "Raspberry", "Coconut",
-               "Grapefruit", "Fig", "Pomegranate", "Avocado", "Cantaloupe", "Blackberry", "Dragonfruit", "Date", "Guava", "Passionfruit"],
-    "Colors": ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Brown", "Black", "White",
-               "Gray", "Cyan", "Magenta", "Teal", "Violet", "Indigo", "Maroon", "Olive", "Gold", "Silver",
-               "Beige", "Turquoise", "Lavender", "Mint", "Coral", "Navy", "Peach", "Chocolate", "Tan", "Cream"],
-    "Countries": ["USA", "Canada", "France", "Germany", "Italy", "Spain", "Japan", "China", "Brazil", "Mexico",
-                  "Australia", "India", "Russia", "UK", "Sweden", "Norway", "Netherlands", "Belgium", "Switzerland", "Argentina",
-                  "Chile", "Egypt", "Greece", "Thailand", "Vietnam", "SouthKorea", "NewZealand", "Ireland", "Portugal", "Poland"],
-    "Sports": ["Soccer", "Basketball", "Tennis", "Baseball", "Golf", "Cricket", "Rugby", "Volleyball", "Hockey", "Boxing",
-               "Swimming", "Running", "Cycling", "Skiing", "Skating", "Surfing", "Karate", "Wrestling", "Gymnastics", "Bowling",
-               "Sailing", "Archery", "Fencing", "Badminton", "TableTennis", "Snowboarding", "Climbing", "Weightlifting", "Kayaking", "Diving"],
-    "Foods": ["Pizza", "Burger", "Pasta", "Sushi", "Taco", "Salad", "Steak", "Sandwich", "Soup", "Fries",
-              "Chocolate", "IceCream", "Bread", "Rice", "Cheese", "Egg", "Milk", "Yogurt", "ApplePie", "Donut",
-              "Bagel", "Pancake", "Waffle", "Cookie", "Muffin", "Cereal", "Noodles", "HotDog", "Chili", "Pie"],
-    "Emotions": ["Happy", "Sad", "Angry", "Excited", "Bored", "Confused", "Surprised", "Scared", "Calm", "Joyful",
-                 "Anxious", "Proud", "Shy", "Nervous", "Curious", "Frustrated", "Relaxed", "Energetic", "Lonely", "Grateful",
-                 "Jealous", "Embarrassed", "Hopeful", "Guilty", "Optimistic", "Confident", "Tired", "Disappointed", "Afraid", "Content"],
-    "Objects": ["Chair", "Table", "Lamp", "Phone", "Laptop", "Book", "Pen", "Notebook", "Bag", "Bottle",
-                "Key", "Wallet", "Watch", "Glasses", "Shoes", "Hat", "Umbrella", "Door", "Window", "Mirror",
-                "Brush", "Camera", "Speaker", "Headphones", "Television", "Sofa", "Pillow", "Rug", "Clock", "Fan"],
-    "Professions": ["Doctor", "Engineer", "Teacher", "Nurse", "Pilot", "Chef", "Artist", "Lawyer", "Farmer", "Driver",
-                    "Firefighter", "Police", "Scientist", "Writer", "Musician", "Designer", "Actor", "Singer", "Dancer", "Programmer",
-                    "Photographer", "Mechanic", "Electrician", "Plumber", "Architect", "Journalist", "Baker", "Tailor", "Coach", "Soldier"]
-};
+  Animals: [
+    "DOG","CAT","HORSE","TIGER","LION","WOLF","FOX","BEAR","SHEEP","GOAT",
+    "COW","PIG","MOUSE","RABBIT","DEER","MONKEY","APE","KOALA","PANDA","ZEBRA",
+    "CAMEL","OTTER","SEAL","WHALE","DOLPHIN","SHARK","EAGLE","OWL","CROW","FALCON"
+  ],
+
+  Countries: [
+    "FRANCE","SPAIN","ITALY","GERMANY","BELGIUM","SWEDEN","NORWAY","POLAND","GREECE","PORTUGAL",
+    "CANADA","BRAZIL","ARGENTINA","CHILE","PERU","MEXICO","COLOMBIA","PANAMA","CUBA","JAMAICA",
+    "JAPAN","CHINA","KOREA","INDIA","THAILAND","VIETNAM","NEPAL","BHUTAN","LAOS","MALAYSIA"
+  ],
+
+  Brands: [
+    "APPLE","GOOGLE","MICROSOFT","AMAZON","META","TESLA","NIKE","ADIDAS","PUMA","REEBOK",
+    "SONY","SAMSUNG","INTEL","NVIDIA","IBM","ORACLE","SPOTIFY","NETFLIX","DISNEY","UBER",
+    "AIRBNB","PAYPAL","STRIPE","VISA","MASTERCARD","COCA","PEPSI","NESTLE","SHELL","TOTAL"
+  ],
+
+  Food: [
+    "BREAD","CHEESE","BUTTER","YOGURT","PASTA","PIZZA","BURGER","STEAK","CHICKEN","BACON",
+    "SALMON","TUNA","SHRIMP","RICE","NOODLE","SOUP","SALAD","TOMATO","ONION","GARLIC",
+    "PEPPER","CARROT","POTATO","APPLE","BANANA","ORANGE","MANGO","GRAPE","LEMON","PEACH"
+  ],
+
+  Colors: [
+    "BLACK","WHITE","GRAY","SILVER","GOLD","RED","BLUE","GREEN","YELLOW","ORANGE",
+    "PURPLE","PINK","BROWN","BEIGE","IVORY","TEAL","CYAN","NAVY","MAROON","OLIVE",
+    "LIME","MINT","CORAL","PEACH","PLUM","INDIGO","VIOLET","AMBER","BRONZE","COPPER"
+  ],
+
+  Jobs: [
+    "DOCTOR","NURSE","TEACHER","LAWYER","ENGINEER","ARCHITECT","DESIGNER","WRITER","EDITOR","REPORTER",
+    "CHEF","BAKER","COOK","FARMER","GARDENER","DRIVER","PILOT","CAPTAIN","SAILOR","FISHER",
+    "ACTOR","SINGER","DANCER","PAINTER","SCULPTOR","PHOTOGRAPHER","DIRECTOR","PRODUCER","CAMERAMAN","EDITORIAL"
+  ],
+
+  Sports: [
+    "SOCCER","RUGBY","TENNIS","CRICKET","HOCKEY","BASEBALL","BASKETBALL","VOLLEY","HANDBALL","BADMINTON",
+    "GOLF","BOXING","WRESTLING","KARATE","JUDO","TAEKWONDO","SKIING","SNOWBOARD","SURFING","SWIMMING",
+    "RUNNING","CYCLING","ROWING","SAILING","CLIMBING","HIKING","SKATING","FENCING","ARCHERY","SHOOTING"
+  ],
+
+  Music: [
+    "ROCK","POP","JAZZ","BLUES","SOUL","FUNK","DISCO","TECHNO","HOUSE","TRANCE",
+    "HIPHOP","RAP","REGGAE","SKA","METAL","PUNK","GRUNGE","INDIE","FOLK","COUNTRY",
+    "CLASSICAL","OPERA","CHORAL","SYMPHONY","ORCHESTRA","PIANO","GUITAR","DRUMS","BASS","VIOLIN"
+  ],
+
+  Movies: [
+    "ACTION","DRAMA","COMEDY","HORROR","THRILLER","ROMANCE","WESTERN","FANTASY","SCIENCE","FICTION",
+    "ANIMATION","DOCUMENTARY","MYSTERY","CRIME","NOIR","MUSICAL","BIOPIC","HISTORY","WAR","SPORTS",
+    "SUPERHERO","ADVENTURE","EPIC","SHORT","SERIES","SEQUEL","PREQUEL","REMAKE","SPINOFF","CAMEO"
+  ],
+
+  Technology: [
+    "COMPUTER","LAPTOP","TABLET","PHONE","SERVER","NETWORK","CLOUD","DATABASE","ALGORITHM","SOFTWARE",
+    "HARDWARE","BROWSER","WEBSITE","APP","SECURITY","ENCRYPTION","PASSWORD","LOGIN","ACCOUNT","PROFILE",
+    "BACKUP","STORAGE","MEMORY","PROCESSOR","GPU","CPU","FIRMWARE","PROTOCOL","API","FRAMEWORK"
+  ],
+
+  Nature: [
+    "FOREST","DESERT","MOUNTAIN","RIVER","OCEAN","LAKE","VALLEY","HILL","CLIFF","CANYON",
+    "ISLAND","BEACH","GLACIER","VOLCANO","WATERFALL","STREAM","SWAMP","JUNGLE","RAINFOREST","SAVANNA",
+    "PLAINS","MEADOW","FIELD","GARDEN","PARK","RESERVE","DELTA","REEF","COAST","SHORE"
+  ],
+
+  Emotions: [
+    "HAPPY","SAD","ANGRY","EXCITED","NERVOUS","CALM","RELAXED","STRESSED","ANXIOUS","PROUD",
+    "ASHAMED","CONFIDENT","HOPEFUL","FEARFUL","CURIOUS","BORED","TIRED","ENERGETIC","LONELY","LOVED",
+    "JEALOUS","GRATEFUL","CONTENT","FRUSTRATED","SURPRISED","CONFUSED","INSPIRED","MOTIVATED","DEPRESSED","OPTIMISTIC"
+  ],
+
+  Vehicles: [
+    "CAR","TRUCK","BUS","TRAIN","TRAM","SUBWAY","SCOOTER","MOTORBIKE","BICYCLE","SKATEBOARD",
+    "AIRPLANE","HELICOPTER","GLIDER","JET","BOAT","SHIP","FERRY","SUBMARINE","YACHT","CANOE",
+    "KAYAK","RAFT","TANK","TRACTOR","CRANE","FORKLIFT","VAN","SUV","SEDAN","COUPE"
+  ],
+
+  Clothing: [
+    "SHIRT","PANTS","JEANS","SHORTS","SKIRT","DRESS","JACKET","COAT","HOODIE","SWEATER",
+    "SOCKS","SHOES","BOOTS","SANDALS","SNEAKERS","HAT","CAP","BEANIE","SCARF","GLOVES",
+    "BELT","TIE","SUIT","BLAZER","VEST","PYJAMAS","UNDERWEAR","BRIEFS","BOXERS","BATHROBE"
+  ],
+
+  BodyParts: [
+    "HEAD","BRAIN","EYES","EARS","NOSE","MOUTH","TEETH","TONGUE","NECK","SHOULDERS",
+    "ARMS","ELBOW","WRIST","HANDS","FINGERS","CHEST","BACK","SPINE","WAIST","HIPS",
+    "LEGS","KNEE","ANKLE","FEET","TOES","HEART","LUNGS","LIVER","STOMACH","MUSCLES"
+  ],
+
+  Weather: [
+    "SUNNY","CLOUDY","RAINY","STORMY","WINDY","FOGGY","SNOWY","ICY","HUMID","DRY",
+    "HOT","COLD","WARM","COOL","FREEZING","BOILING","BREEZY","OVERCAST","DROUGHT","FLOOD",
+    "THUNDER","LIGHTNING","HAIL","BLIZZARD","CYCLONE","HURRICANE","TORNADO","MONSOON","RAINBOW","MIST"
+  ],
+
+  Space: [
+    "PLANET","STAR","GALAXY","NEBULA","COMET","ASTEROID","METEOR","ORBIT","GRAVITY","VACUUM",
+    "SATELLITE","ROCKET","SPACESHIP","ASTRONAUT","COSMONAUT","TELESCOPE","OBSERVATORY","CONSTELLATION","UNIVERSE","COSMOS",
+    "MARS","VENUS","EARTH","JUPITER","SATURN","URANUS","NEPTUNE","PLUTO","ECLIPSE","SOLAR"
+  ],
+
+  Time: [
+    "SECOND","MINUTE","HOUR","DAY","WEEK","MONTH","YEAR","DECADE","CENTURY","MILLENNIUM",
+    "MORNING","NOON","AFTERNOON","EVENING","NIGHT","MIDNIGHT","DAWN","DUSK","TODAY","TOMORROW",
+    "YESTERDAY","PAST","PRESENT","FUTURE","DEADLINE","SCHEDULE","CALENDAR","CLOCK","ALARM","TIMEZONE"
+  ],
+
+  Shapes: [
+    "CIRCLE","SQUARE","TRIANGLE","RECTANGLE","OVAL","DIAMOND","STAR","HEART","CUBE","SPHERE",
+    "CYLINDER","CONE","PYRAMID","HEXAGON","PENTAGON","OCTAGON","DECAGON","ELLIPSE","ARC","ANGLE",
+    "LINE","CURVE","EDGE","FACE","VERTEX","PLANE","SOLID","FORM","PATTERN","SYMMETRY"
+  ],
+
+  Materials: [
+    "WOOD","METAL","PLASTIC","GLASS","STONE","BRICK","CONCRETE","STEEL","IRON","COPPER",
+    "ALUMINUM","SILVER","GOLD","FABRIC","COTTON","WOOL","SILK","LEATHER","RUBBER","CERAMIC",
+    "PORCELAIN","CLAY","PAPER","CARDBOARD","FOAM","CARBON","FIBER","RESIN","LATEX","NYLON"
+  ],
+
+  Communication: [
+    "MESSAGE","EMAIL","LETTER","CHAT","CALL","VIDEO","AUDIO","SIGNAL","BROADCAST","STREAM",
+    "POST","COMMENT","REPLY","FORWARD","ATTACHMENT","SUBJECT","CONTENT","CHANNEL","NETWORK","CONTACT",
+    "PROFILE","USERNAME","PASSWORD","LOGIN","LOGOUT","SESSION","NOTIFICATION","ALERT","STATUS","UPDATE"
+  ],
+
+  Education: [
+    "SCHOOL","COLLEGE","UNIVERSITY","CLASS","LESSON","LECTURE","COURSE","SUBJECT","TOPIC","MODULE",
+    "STUDENT","TEACHER","PROFESSOR","TUTOR","HOMEWORK","ASSIGNMENT","PROJECT","EXAM","TEST","QUIZ",
+    "GRADE","SCORE","RESULT","DIPLOMA","DEGREE","CERTIFICATE","KNOWLEDGE","LEARNING","STUDY","REVISION"
+  ],
+
+  Finance: [
+    "MONEY","CASH","COIN","BANK","ACCOUNT","SAVINGS","CREDIT","DEBIT","LOAN","INTEREST",
+    "INVESTMENT","STOCK","BOND","ETF","FUND","MARKET","TRADE","PROFIT","LOSS","REVENUE",
+    "SALARY","WAGE","INCOME","EXPENSE","BUDGET","TAX","INVOICE","PAYMENT","TRANSFER","BALANCE"
+  ],
+
+  Health: [
+    "DOCTOR","PATIENT","CLINIC","HOSPITAL","MEDICINE","TABLET","VACCINE","THERAPY","TREATMENT","RECOVERY",
+    "SYMPTOM","DIAGNOSIS","CONDITION","DISEASE","INFECTION","VIRUS","BACTERIA","IMMUNITY","FITNESS","EXERCISE",
+    "DIET","NUTRITION","PROTEIN","VITAMIN","MINERAL","HYDRATION","SLEEP","REST","STRESS","WELLNESS"
+  ]
