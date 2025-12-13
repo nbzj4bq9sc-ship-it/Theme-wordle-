@@ -1,137 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> <script src="themes.js"></script>
-<script src="theme-wordle.js"></script>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
 
 <style>
-:root {
-  --bg:#121212;
-  --card:#1e1e1e;
-  --border:#333;
-  --green:#4caf50;
-  --yellow:#fbc02d;
-  --gray:#555;
-}
-
 body {
-  margin:0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  background:var(--bg);
+  background:#121212;
   color:white;
-  display:flex;
-  justify-content:center;
-}
-
-.app {
-  width:100%;
-  max-width:420px;
+  font-family:system-ui;
+  margin:0;
   padding:16px;
 }
-
-h1 {
-  text-align:center;
-  margin-bottom:12px;
+.app {
+  max-width:420px;
+  margin:auto;
 }
-
+h1 { text-align:center; }
 .hint {
-  background:var(--card);
+  background:#1e1e1e;
   padding:14px;
   border-radius:10px;
   text-align:center;
+  margin-bottom:16px;
   font-size:1.1rem;
-  letter-spacing:1px;
-  margin-bottom:16px;
 }
-
-.board {
-  display:grid;
-  gap:12px;
-  margin-bottom:16px;
-}
-
-.row {
-  display:grid;
-  gap:8px;
-}
-
+.board { display:grid; gap:10px; margin-bottom:16px; }
+.row { display:grid; gap:8px; }
 .cell {
-  background:var(--card);
-  border:2px solid var(--border);
+  background:#1e1e1e;
+  border:2px solid #333;
   height:56px;
   font-size:1.6rem;
-  font-weight:bold;
   display:flex;
   align-items:center;
   justify-content:center;
-  text-transform:uppercase;
+  font-weight:bold;
 }
+.correct { background:#4caf50; }
+.present { background:#fbc02d; color:black; }
+.absent { background:#555; }
 
-.correct { background:var(--green); border-color:var(--green); }
-.present { background:var(--yellow); color:black; border-color:var(--yellow); }
-.absent  { background:var(--gray); border-color:var(--gray); }
-
-input {
+input, button {
   width:100%;
   height:56px;
-  font-size:1.3rem;
-  text-align:center;
+  font-size:1.2rem;
   border-radius:10px;
   border:none;
-  outline:none;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
-
-button {
-  width:100%;
-  padding:14px;
-  border-radius:10px;
-  border:none;
-  background:white;
-  font-size:1rem;
-  font-weight:bold;
-  margin-top:8px;
-}
-
-.secondary {
-  background:var(--card);
-  color:white;
-}
-
+button { font-weight:bold; }
 .hidden { display:none; }
-
-.copy-box {
-  margin-top:10px;
-}
-
-.copy-box input {
-  width:100%;
-  margin-bottom:8px;
-}
-
-.stats {
-  background:var(--card);
-  padding:14px;
-  border-radius:10px;
-  margin-top:16px;
-  font-size:0.95rem;
-}
-
-.footer {
-  text-align:center;
-  font-size:0.8rem;
-  opacity:0.6;
-  margin-top:16px;
-}
-
-#message {
-  text-align:center;
-  margin-top:8px;
-  color:#fbc02d;
-  font-weight:bold;
-}
+#msg { text-align:center; color:#fbc02d; margin-bottom:10px; }
 </style>
 </head>
 
@@ -140,25 +61,21 @@ button {
 
 <h1>Theme Wordle</h1>
 
-<div class="hint" id="hint"></div>
+<div class="hint" id="hint">Loading…</div>
 
 <div class="board" id="board"></div>
 
-<input id="input" placeholder="Type your guess">
+<input id="input" placeholder="Type your word">
+<button id="validate">Validate</button>
 
-<div id="message"></div>
+<div id="msg"></div>
 
-<button id="copyResultBtn" class="hidden">Copy result</button>
-<button id="copyLinkBtn" class="hidden secondary">Copy link</button>
-
-<div class="stats" id="stats"></div>
-
-<div class="footer">Same word • 3 tries • No spoilers</div>
+<button id="copyResult" class="hidden">Copy result</button>
 
 </div>
 
 <script>
-/* ---------------- WORD POOL (sample) ---------------- */
+/* ✅ WORD DATA (INLINE FOR SAFETY) */
 const THEMES = {
   Animals:["DOG","CAT","TIGER","PANDA","KOALA"],
   Brands:["NIKE","APPLE","ADIDAS","TESLA","SONY"],
@@ -166,147 +83,70 @@ const THEMES = {
   Countries:["FRANCE","CANADA","BRAZIL","JAPAN","ITALY"]
 };
 
-/* ---------------- UTILS ---------------- */
-function todaySeed() {
-  const d = new Date();
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000 | 0;
-}
-
-/* ---------------- STATS ---------------- */
-const stats = JSON.parse(localStorage.getItem("twStats")) || {
-  played:0,
-  won:0,
-  streak:0,
-  bestStreak:0,
-  lastPlayed:null
-};
-
-function saveStats() {
-  localStorage.setItem("twStats", JSON.stringify(stats));
-}
-
-function renderStats() {
-  const winRate = stats.played ? Math.round((stats.won / stats.played) * 100) : 0;
-  document.getElementById("stats").innerHTML = `
-    <strong>Stats</strong><br>
-    Games played: ${stats.played}<br>
-    Wins: ${stats.won}<br>
-    Win rate: ${winRate}%<br>
-    Current streak: ${stats.streak}<br>
-    Best streak: ${stats.bestStreak}
-  `;
-}
-
-/* ---------------- WORD OF THE DAY ---------------- */
-const seed = todaySeed();
-const themeKeys = Object.keys(THEMES);
-const theme = themeKeys[seed % themeKeys.length];
+/* DAILY SEED */
+const seed = Math.floor(Date.now() / 86400000);
+const themeNames = Object.keys(THEMES);
+const theme = themeNames[seed % themeNames.length];
 const word = THEMES[theme][seed % THEMES[theme].length];
 
-/* ---------------- UI SETUP ---------------- */
+document.getElementById("hint").textContent =
+  `HINT: ${theme} • ${word.length} letters`;
+
+const board = document.getElementById("board");
+const input = document.getElementById("input");
+const validate = document.getElementById("validate");
+const msg = document.getElementById("msg");
+
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
 
-const board = document.getElementById("board");
-const input = document.getElementById("input");
-const hint = document.getElementById("hint");
-const message = document.getElementById("message");
-const copyResultBtn = document.getElementById("copyResultBtn");
-const copyLinkBtn = document.getElementById("copyLinkBtn");
-
-hint.textContent = `HINT: ${theme} • ${word.length} LETTERS`;
-
-/* ---------------- DAILY LOCK ---------------- */
-if(stats.lastPlayed === seed) {
-  input.disabled = true;
-  message.textContent = "You've already played today! Come back tomorrow 🌞";
-  copyResultBtn.classList.remove("hidden");
-  copyLinkBtn.classList.remove("hidden");
-  renderStats();
-} else {
-  for (let i = 0; i < maxTries; i++) {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.style.gridTemplateColumns = `repeat(${word.length}, 1fr)`;
-    for (let j = 0; j < word.length; j++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      row.appendChild(cell);
-    }
-    board.appendChild(row);
+for(let i=0;i<maxTries;i++){
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.gridTemplateColumns = `repeat(${word.length},1fr)`;
+  for(let j=0;j<word.length;j++){
+    row.appendChild(document.createElement("div")).className="cell";
   }
+  board.appendChild(row);
 }
 
-/* ---------------- GAME LOGIC ---------------- */
-input.addEventListener("keydown", e => {
-  if (e.key !== "Enter") return;
-
+validate.onclick = () => {
   const guess = input.value.toUpperCase();
-  if (guess.length !== word.length) return;
+  if(guess.length !== word.length) return;
 
   const row = board.children[tries];
-  let rowEmoji = "";
+  let line = "";
 
-  [...row.children].forEach((cell, i) => {
+  [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
-    if (guess[i] === word[i]) {
-      cell.classList.add("correct");
-      rowEmoji += "🟩";
-    } else if (word.includes(guess[i])) {
-      cell.classList.add("present");
-      rowEmoji += "🟨";
+    if(guess[i] === word[i]){
+      cell.classList.add("correct"); line+="🟩";
+    } else if(word.includes(guess[i])){
+      cell.classList.add("present"); line+="🟨";
     } else {
-      cell.classList.add("absent");
-      rowEmoji += "⬛";
+      cell.classList.add("absent"); line+="⬛";
     }
   });
 
-  emojis.push(rowEmoji);
+  emojis.push(line);
   tries++;
-  input.value = "";
+  input.value="";
 
-  if (guess === word) endGame(true);
-  else if (tries === maxTries) endGame(false);
-});
-
-/* ---------------- END GAME ---------------- */
-function endGame(win) {
-  input.disabled = true;
-  copyResultBtn.classList.remove("hidden");
-  copyLinkBtn.classList.remove("hidden");
-
-  if(stats.lastPlayed !== seed) {
-    stats.played++;
-    if(win) {
-      stats.won++;
-      stats.streak++;
-      stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
-    } else {
-      stats.streak = 0;
-    }
-    stats.lastPlayed = seed;
-    saveStats();
+  if(guess === word || tries === maxTries){
+    input.disabled = true;
+    validate.disabled = true;
+    document.getElementById("copyResult").classList.remove("hidden");
   }
-  renderStats();
-}
-
-/* ---------------- COPY RESULT ---------------- */
-copyResultBtn.onclick = () => {
-  const text = `Theme Wordle • ${emojis.length || '?'} / ${maxTries}\n${emojis.join("\n")}\nNo spoilers 😉`;
-  navigator.clipboard.writeText(text);
-  copyResultBtn.textContent = "Copied!";
-  setTimeout(() => copyResultBtn.textContent = "Copy result", 1200);
 };
 
-/* ---------------- COPY LINK ---------------- */
-copyLinkBtn.onclick = () => {
-  navigator.clipboard.writeText(location.href);
-  copyLinkBtn.textContent = "Link copied!";
-  setTimeout(() => copyLinkBtn.textContent = "Copy link", 1200);
+document.getElementById("copyResult").onclick = () => {
+  navigator.clipboard.writeText(
+    `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
+  );
+  msg.textContent = "Result copied!";
 };
-
-renderStats();
 </script>
+
 </body>
 </html>
