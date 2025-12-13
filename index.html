@@ -40,117 +40,121 @@ button { font-weight:bold; }
 </div>
 </div>
 
-<!-- INCLUDE YOUR THEME.JS -->
+<!-- Inclure ton theme.js -->
 <script src="theme.js"></script>
 
 <script>
-// Mot du jour identique pour tous
-const seed = Math.floor(Date.now() / 86400000);
-const themeNames = Object.keys(THEMES);
-const theme = themeNames[seed % themeNames.length];
-const word = THEMES[theme][seed % THEMES[theme].length].toUpperCase();
+window.onload = () => {
 
-document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
+  // Mot du jour identique pour tous
+  const seed = Math.floor(Date.now() / 86400000);
+  const themeNames = Object.keys(THEMES);
+  const theme = themeNames[seed % themeNames.length];
+  const word = THEMES[theme][seed % THEMES[theme].length].toUpperCase();
 
-const board = document.getElementById("board");
-const input = document.getElementById("input");
-const validate = document.getElementById("validate");
-const msg = document.getElementById("msg");
-const copyBtn = document.getElementById("copyResult");
+  document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
 
-// STATS
-let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
-function updateStatsDisplay(){
-  document.getElementById('played').textContent = stats.played;
-  document.getElementById('won').textContent = stats.won;
-  document.getElementById('streak').textContent = stats.streak;
-  document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
-}
-updateStatsDisplay();
-function updateStats(win){
-  stats.played++;
-  if(win){ stats.won++; stats.streak++; } else stats.streak=0;
-  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
+  const board = document.getElementById("board");
+  const input = document.getElementById("input");
+  const validate = document.getElementById("validate");
+  const msg = document.getElementById("msg");
+  const copyBtn = document.getElementById("copyResult");
+
+  // STATS
+  let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
+  function updateStatsDisplay(){
+    document.getElementById('played').textContent = stats.played;
+    document.getElementById('won').textContent = stats.won;
+    document.getElementById('streak').textContent = stats.streak;
+    document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
+  }
   updateStatsDisplay();
-}
-
-// Validation stricte des mots
-const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
-
-// BOARD
-const maxTries = 3;
-let tries = 0;
-let emojis = [];
-
-for(let i=0;i<maxTries;i++){
-  const row = document.createElement("div");
-  row.className = "row";
-  row.style.gridTemplateColumns = `repeat(${word.length},1fr)`;
-  for(let j=0;j<word.length;j++){
-    row.appendChild(document.createElement("div")).className="cell";
-  }
-  board.appendChild(row);
-}
-
-// Animation lettre par lettre
-function fillRow(row, guess){
-  guess.split('').forEach((letter,i)=>{
-    setTimeout(()=>{
-      const cell = row.children[i];
-      cell.textContent = letter;
-      if(letter === word[i]) cell.classList.add("correct");
-      else if(word.includes(letter)) cell.classList.add("present");
-      else cell.classList.add("absent");
-      row.classList.add('shake');
-      setTimeout(()=>row.classList.remove('shake'),200);
-    }, i*600);
-  });
-}
-
-// VALIDATE WORD
-validate.onclick = () => {
-  const guess = input.value.toUpperCase().trim();
-  if(guess.length !== word.length) return;
-
-  if(!ALL_WORDS.has(guess)){
-    input.classList.add('invalid');
-    msg.textContent = "Word not valid in English!";
-    return;
-  } else {
-    input.classList.remove('invalid');
-    msg.textContent = "";
+  function updateStats(win){
+    stats.played++;
+    if(win){ stats.won++; stats.streak++; } else stats.streak=0;
+    localStorage.setItem('themeWordleStats', JSON.stringify(stats));
+    updateStatsDisplay();
   }
 
-  const row = board.children[tries];
-  fillRow(row, guess);
+  // Validation stricte des mots
+  const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
-  // emojis for copy
-  let line="";
-  [...row.children].forEach((cell,i)=>{
-    if(guess[i] === word[i]) line+="🟩";
-    else if(word.includes(guess[i])) line+="🟨";
-    else line+="⬛";
-  });
-  emojis.push(line);
+  // BOARD
+  const maxTries = 3;
+  let tries = 0;
+  let emojis = [];
 
-  tries++;
-  input.value="";
-
-  if(guess === word || tries === maxTries){
-    input.disabled = true;
-    validate.disabled = true;
-    copyBtn.classList.remove("hidden");
-    updateStats(guess===word);
+  for(let i=0;i<maxTries;i++){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.gridTemplateColumns = `repeat(${word.length},1fr)`;
+    for(let j=0;j<word.length;j++){
+      row.appendChild(document.createElement("div")).className="cell";
+    }
+    board.appendChild(row);
   }
+
+  // Animation lettre par lettre
+  function fillRow(row, guess){
+    guess.split('').forEach((letter,i)=>{
+      setTimeout(()=>{
+        const cell = row.children[i];
+        cell.textContent = letter;
+        if(letter === word[i]) cell.classList.add("correct");
+        else if(word.includes(letter)) cell.classList.add("present");
+        else cell.classList.add("absent");
+        row.classList.add('shake');
+        setTimeout(()=>row.classList.remove('shake'),200);
+      }, i*600);
+    });
+  }
+
+  // VALIDATE WORD
+  validate.onclick = () => {
+    const guess = input.value.toUpperCase().trim();
+    if(guess.length !== word.length) return;
+
+    if(!ALL_WORDS.has(guess)){
+      input.classList.add('invalid');
+      msg.textContent = "Word not valid in English!";
+      return;
+    } else {
+      input.classList.remove('invalid');
+      msg.textContent = "";
+    }
+
+    const row = board.children[tries];
+    fillRow(row, guess);
+
+    // emojis for copy
+    let line="";
+    [...row.children].forEach((cell,i)=>{
+      if(guess[i] === word[i]) line+="🟩";
+      else if(word.includes(guess[i])) line+="🟨";
+      else line+="⬛";
+    });
+    emojis.push(line);
+
+    tries++;
+    input.value="";
+
+    if(guess === word || tries === maxTries){
+      input.disabled = true;
+      validate.disabled = true;
+      copyBtn.classList.remove("hidden");
+      updateStats(guess===word);
+    }
+  };
+
+  // COPY RESULT WITHOUT SPOILER
+  copyBtn.onclick = ()=>{
+    navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
+    msg.textContent = "Result copied!";
+  };
+
+  input.addEventListener('keypress', e => { if(e.key==='Enter') validate.click(); });
+
 };
-
-// COPY RESULT WITHOUT SPOILER
-copyBtn.onclick = ()=>{
-  navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
-  msg.textContent = "Result copied!";
-};
-
-input.addEventListener('keypress', e => { if(e.key==='Enter') validate.click(); });
 </script>
 </body>
 </html>
