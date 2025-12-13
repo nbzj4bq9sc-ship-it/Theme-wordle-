@@ -17,7 +17,8 @@ body {
 h1 { margin-bottom: 10px; }
 #theme { font-weight: bold; font-size: 1.5em; margin-bottom: 15px; text-align:center; }
 #input-container { display:flex; margin-bottom:10px; }
-#word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; }
+#word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; transition:border 0.3s; }
+#word-input.invalid { border: 2px solid #ff4c4c; }
 #validate-btn { font-size:1.3em; padding:10px 15px; margin-left:10px; cursor:pointer; border-radius:5px; border:none; background:#4caf50; color:#fff; }
 #error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
 #history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
@@ -102,21 +103,24 @@ function updateStats(win){
   document.getElementById('winpercent').textContent = Math.round(stats.won / stats.played *100);
 }
 
-function addGuessRow(guess){
+function displayGuessWithDelay(guess){
   const row = document.createElement('div');
   row.className='row';
-  for(let i=0;i<guess.length;i++){
-    const span=document.createElement('div');
-    span.className='letter';
-    span.textContent=guess[i];
-    if(wordOfDay[i]===guess[i]) span.classList.add('correct');
-    else if(wordOfDay.includes(guess[i])) span.classList.add('present');
-    else span.classList.add('absent');
-    row.appendChild(span);
-  }
   history.appendChild(row);
-  row.classList.add('shake');
-  setTimeout(()=>row.classList.remove('shake'),200);
+
+  guess.split('').forEach((letter, i) => {
+    setTimeout(()=>{
+      const span = document.createElement('div');
+      span.className='letter';
+      span.textContent = letter;
+      if(wordOfDay[i]===letter) span.classList.add('correct');
+      else if(wordOfDay.includes(letter)) span.classList.add('present');
+      else span.classList.add('absent');
+      row.appendChild(span);
+      row.classList.add('shake');
+      setTimeout(()=>row.classList.remove('shake'),200);
+    }, i*600);
+  });
 }
 
 function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
@@ -135,21 +139,27 @@ function validateWord(){
   if(!guess) return;
   if(!words.includes(guess)){
     errorMsg.textContent='Mot invalide !';
+    input.classList.add('invalid');
     return;
   }
   errorMsg.textContent='';
-  addGuessRow(guess);
+  input.classList.remove('invalid');
+  displayGuessWithDelay(guess);
   tries++;
   if(guess===wordOfDay){
-    alert('Bravo ! Mot trouvé.');
-    input.disabled=true; btn.disabled=true;
-    updateStats(true);
-    shareWord();
+    setTimeout(()=>{
+      alert('Bravo ! Mot trouvé.');
+      input.disabled=true; btn.disabled=true;
+      updateStats(true);
+      shareWord();
+    }, guess.length*600+100);
   } else if(tries>=MAX_TRIES){
-    alert('Échec ! Le mot était : '+wordOfDay);
-    input.disabled=true; btn.disabled=true;
-    updateStats(false);
-    shareWord();
+    setTimeout(()=>{
+      alert('Échec ! Le mot était : '+wordOfDay);
+      input.disabled=true; btn.disabled=true;
+      updateStats(false);
+      shareWord();
+    }, guess.length*600+100);
   }
   input.value='';
 }
