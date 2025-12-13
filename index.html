@@ -67,17 +67,22 @@ h1 { margin-bottom: 10px; }
 
 <script src="theme.js"></script>
 <script>
+// ----- Configuration du jeu -----
 const MAX_TRIES = 3;
 let todayKey = new Date().toISOString().slice(0,10);
 let themeKeys = Object.keys(THEMES);
 let themeIndex = Math.floor(new Date().getDate() % themeKeys.length);
 let theme = themeKeys[themeIndex];
-let words = THEMES[theme];
+let words = THEMES[theme].map(w=>w.toUpperCase());
 let wordIndex = Math.floor(new Date().getDate() % words.length);
-let wordOfDay = words[wordIndex].toUpperCase();
+let wordOfDay = words[wordIndex];
+
+// Création d’un set global de tous les mots pour validation stricte
+const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
 document.getElementById('theme').textContent = 'Theme: ' + theme;
 
+// ----- DOM elements -----
 const input = document.getElementById('word-input');
 const btn = document.getElementById('validate-btn');
 const errorMsg = document.getElementById('error-msg');
@@ -85,34 +90,35 @@ const history = document.getElementById('history');
 const shareContainer = document.getElementById('share-container');
 let tries = 0;
 
-// Stats
+// ----- Stats -----
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
-document.getElementById('played').textContent = stats.played;
-document.getElementById('won').textContent = stats.won;
-document.getElementById('streak').textContent = stats.streak;
-document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won / stats.played * 100) : 0;
-
-function updateStats(win){
-  stats.played++;
-  if(win) stats.won++, stats.streak++;
-  else stats.streak=0;
-  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
+function updateStatsDisplay(){
   document.getElementById('played').textContent = stats.played;
   document.getElementById('won').textContent = stats.won;
   document.getElementById('streak').textContent = stats.streak;
-  document.getElementById('winpercent').textContent = Math.round(stats.won / stats.played *100);
+  document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
+}
+updateStatsDisplay();
+
+function updateStats(win){
+  stats.played++;
+  if(win){ stats.won++; stats.streak++; } 
+  else stats.streak=0;
+  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
+  updateStatsDisplay();
 }
 
+// ----- Affichage lettre par lettre -----
 function displayGuessWithDelay(guess){
   const row = document.createElement('div');
   row.className='row';
   history.appendChild(row);
 
-  guess.split('').forEach((letter, i) => {
+  guess.split('').forEach((letter, i)=>{
     setTimeout(()=>{
-      const span = document.createElement('div');
+      const span=document.createElement('div');
       span.className='letter';
-      span.textContent = letter;
+      span.textContent=letter;
       if(wordOfDay[i]===letter) span.classList.add('correct');
       else if(wordOfDay.includes(letter)) span.classList.add('present');
       else span.classList.add('absent');
@@ -123,9 +129,9 @@ function displayGuessWithDelay(guess){
   });
 }
 
+// ----- Partage -----
 function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
-
-function shareWord(){ 
+function shareWord(){
   shareContainer.innerHTML='';
   const link=document.createElement('div');
   link.className='share-link';
@@ -134,38 +140,46 @@ function shareWord(){
   shareContainer.appendChild(link);
 }
 
+// ----- Validation du mot -----
 function validateWord(){
   let guess=input.value.trim().toUpperCase();
   if(!guess) return;
-  if(!words.includes(guess)){
+
+  // Vérification stricte
+  if(!ALL_WORDS.has(guess)){
     errorMsg.textContent='Mot invalide !';
     input.classList.add('invalid');
     return;
   }
+
   errorMsg.textContent='';
   input.classList.remove('invalid');
   displayGuessWithDelay(guess);
   tries++;
+
+  // Déterminer fin du jeu après l’affichage complet des lettres
+  const delay = guess.length*600 + 100;
   if(guess===wordOfDay){
     setTimeout(()=>{
       alert('Bravo ! Mot trouvé.');
       input.disabled=true; btn.disabled=true;
       updateStats(true);
       shareWord();
-    }, guess.length*600+100);
+    }, delay);
   } else if(tries>=MAX_TRIES){
     setTimeout(()=>{
       alert('Échec ! Le mot était : '+wordOfDay);
       input.disabled=true; btn.disabled=true;
       updateStats(false);
       shareWord();
-    }, guess.length*600+100);
+    }, delay);
   }
   input.value='';
 }
 
+// ----- Event listeners -----
 btn.addEventListener('click', validateWord);
-input.addEventListener('keypress',(e)=>{if(e.key==='Enter') validateWord();});
+input.addEventListener('keypress', (e)=>{if(e.key==='Enter') validateWord();});
 </script>
 </body>
 </html>
