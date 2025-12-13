@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
 <style>
-body { background-color:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px; }
+body { background:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px; }
 h1 { margin-bottom:10px; }
 #theme { font-weight:bold; font-size:1.5em; margin-bottom:15px; text-align:center; }
 #input-container { display:flex; margin-bottom:10px; }
@@ -15,11 +15,12 @@ h1 { margin-bottom:10px; }
 #error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
 #history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
 .row { display:flex; gap:5px; justify-content:center; }
-.letter { display:inline-block; width:35px; height:35px; line-height:35px; text-align:center; font-weight:bold; font-size:1.2em; border:2px solid #555; border-radius:4px; transition: transform 0.2s; }
+.letter { display:inline-block; width:35px; height:35px; line-height:35px; text-align:center; font-weight:bold; font-size:1.2em; border:2px solid #555; border-radius:4px; }
 .correct { background-color:#4caf50; color:#fff; border:none; }
 .present { background-color:#ffeb3b; color:#000; border:none; }
 .absent { background-color:#333; color:#fff; border:none; }
-.shake { transform:translateX(5px); }
+.shake { animation: shake 0.2s; }
+@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
 #stats { margin-top:15px; text-align:center; }
 #share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
 .share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
@@ -48,7 +49,6 @@ h1 { margin-bottom:10px; }
 
 <script src="theme.js"></script>
 <script>
-// --- CONFIGURATION ---
 const MAX_TRIES = 3;
 
 // --- Choix du thème et mot du jour ---
@@ -59,6 +59,7 @@ let theme = themeKeys[themeIndex];
 let words = THEMES[theme].map(w=>w.toUpperCase());
 let wordIndex = new Date().getDate() % words.length;
 let wordOfDay = words[wordIndex];
+document.getElementById('theme').textContent = 'Theme: ' + theme;
 
 // --- Set global pour validation stricte ---
 const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
@@ -70,8 +71,6 @@ const errorMsg = document.getElementById('error-msg');
 const history = document.getElementById('history');
 const shareContainer = document.getElementById('share-container');
 let tries = 0;
-
-document.getElementById('theme').textContent = 'Theme: ' + theme;
 
 // --- STATS ---
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
@@ -89,21 +88,28 @@ function updateStats(win){
   updateStatsDisplay();
 }
 
-// --- Affichage lettre par lettre ---
-function displayGuess(guess){
+// --- Préparer ligne vide ---
+function createRow(guess){
   const row = document.createElement('div');
   row.className='row';
+  for(let i=0;i<guess.length;i++){
+    const span = document.createElement('div');
+    span.className='letter';
+    row.appendChild(span);
+  }
   history.appendChild(row);
-  
+  return row;
+}
+
+// --- Animation lettre par lettre ---
+function fillRow(row, guess){
   guess.split('').forEach((letter,i)=>{
     setTimeout(()=>{
-      const span=document.createElement('div');
-      span.className='letter';
-      span.textContent=letter;
-      if(wordOfDay[i]===letter) span.classList.add('correct');
-      else if(wordOfDay.includes(letter)) span.classList.add('present');
-      else span.classList.add('absent');
-      row.appendChild(span);
+      const cell = row.children[i];
+      cell.textContent = letter;
+      if(wordOfDay[i]===letter) cell.classList.add('correct');
+      else if(wordOfDay.includes(letter)) cell.classList.add('present');
+      else cell.classList.add('absent');
       row.classList.add('shake');
       setTimeout(()=>row.classList.remove('shake'),200);
     }, i*600);
@@ -126,7 +132,6 @@ function validateWord(){
   let guess = input.value.trim().toUpperCase();
   if(!guess) return;
 
-  // Validation stricte
   if(!ALL_WORDS.has(guess)){
     errorMsg.textContent='Mot invalide !';
     input.classList.add('invalid');
@@ -135,11 +140,12 @@ function validateWord(){
 
   input.classList.remove('invalid');
   errorMsg.textContent='';
-  displayGuess(guess);
+
+  const row = createRow(guess);
+  fillRow(row, guess);
   tries++;
 
   const delay = guess.length*600 + 100;
-
   if(guess === wordOfDay){
     setTimeout(()=>{
       alert('Bravo ! Mot trouvé.');
