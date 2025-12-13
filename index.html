@@ -25,9 +25,9 @@ h1 { margin-bottom: 10px; }
 .row { display:flex; gap:5px; justify-content:center; }
 .letter {
   display:inline-block;
-  width:30px;
-  height:30px;
-  line-height:30px;
+  width:35px;
+  height:35px;
+  line-height:35px;
   text-align:center;
   font-weight:bold;
   font-size:1.2em;
@@ -67,22 +67,23 @@ h1 { margin-bottom: 10px; }
 
 <script src="theme.js"></script>
 <script>
-// ----- Configuration du jeu -----
 const MAX_TRIES = 3;
+
+// ----- Sélection du thème et mot du jour -----
 let todayKey = new Date().toISOString().slice(0,10);
 let themeKeys = Object.keys(THEMES);
-let themeIndex = Math.floor(new Date().getDate() % themeKeys.length);
+let themeIndex = new Date().getDate() % themeKeys.length;
 let theme = themeKeys[themeIndex];
 let words = THEMES[theme].map(w=>w.toUpperCase());
-let wordIndex = Math.floor(new Date().getDate() % words.length);
+let wordIndex = new Date().getDate() % words.length;
 let wordOfDay = words[wordIndex];
 
-// Création d’un set global de tous les mots pour validation stricte
+// Set global pour validation stricte
 const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
 document.getElementById('theme').textContent = 'Theme: ' + theme;
 
-// ----- DOM elements -----
+// ----- DOM -----
 const input = document.getElementById('word-input');
 const btn = document.getElementById('validate-btn');
 const errorMsg = document.getElementById('error-msg');
@@ -108,12 +109,12 @@ function updateStats(win){
   updateStatsDisplay();
 }
 
-// ----- Affichage lettre par lettre -----
-function displayGuessWithDelay(guess){
+// ----- Affichage lettre par lettre avec suspense -----
+function displayGuess(guess){
   const row = document.createElement('div');
   row.className='row';
   history.appendChild(row);
-
+  
   guess.split('').forEach((letter, i)=>{
     setTimeout(()=>{
       const span=document.createElement('div');
@@ -140,33 +141,34 @@ function shareWord(){
   shareContainer.appendChild(link);
 }
 
-// ----- Validation du mot -----
+// ----- Validation -----
 function validateWord(){
-  let guess=input.value.trim().toUpperCase();
+  let guess = input.value.trim().toUpperCase();
   if(!guess) return;
 
-  // Vérification stricte
+  // Validation stricte
   if(!ALL_WORDS.has(guess)){
     errorMsg.textContent='Mot invalide !';
     input.classList.add('invalid');
     return;
   }
 
-  errorMsg.textContent='';
   input.classList.remove('invalid');
-  displayGuessWithDelay(guess);
+  errorMsg.textContent='';
+
+  displayGuess(guess);
   tries++;
 
-  // Déterminer fin du jeu après l’affichage complet des lettres
   const delay = guess.length*600 + 100;
-  if(guess===wordOfDay){
+
+  if(guess === wordOfDay){
     setTimeout(()=>{
       alert('Bravo ! Mot trouvé.');
       input.disabled=true; btn.disabled=true;
       updateStats(true);
       shareWord();
     }, delay);
-  } else if(tries>=MAX_TRIES){
+  } else if(tries >= MAX_TRIES){
     setTimeout(()=>{
       alert('Échec ! Le mot était : '+wordOfDay);
       input.disabled=true; btn.disabled=true;
@@ -174,12 +176,14 @@ function validateWord(){
       shareWord();
     }, delay);
   }
+
+  updateStatsDisplay(); // mise à jour stats immédiatement
   input.value='';
 }
 
-// ----- Event listeners -----
+// ----- Events -----
 btn.addEventListener('click', validateWord);
-input.addEventListener('keypress', (e)=>{if(e.key==='Enter') validateWord();});
+input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') validateWord(); });
 </script>
 </body>
 </html>
