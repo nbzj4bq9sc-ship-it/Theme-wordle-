@@ -18,19 +18,19 @@ h1 { margin-bottom: 10px; }
 #theme { font-weight: bold; font-size: 1.5em; margin-bottom: 15px; text-align:center; }
 #input-container { display:flex; margin-bottom:10px; }
 #word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; transition:border 0.3s; }
-#word-input.invalid { border:2px solid #ff4c4c; }
+#word-input.invalid { border: 2px solid #ff4c4c; }
 #validate-btn { font-size:1.3em; padding:10px 15px; margin-left:10px; cursor:pointer; border-radius:5px; border:none; background:#4caf50; color:#fff; }
 #error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
 #history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
 .row { display:flex; gap:5px; justify-content:center; }
 .letter {
   display:inline-block;
-  width:40px;
-  height:40px;
-  line-height:40px;
+  width:30px;
+  height:30px;
+  line-height:30px;
   text-align:center;
   font-weight:bold;
-  font-size:1.3em;
+  font-size:1.2em;
   border:2px solid #555;
   border-radius:4px;
   transition: transform 0.2s;
@@ -38,8 +38,7 @@ h1 { margin-bottom: 10px; }
 .correct { background-color:#4caf50; color:#fff; border:none; }
 .present { background-color:#ffeb3b; color:#000; border:none; }
 .absent { background-color:#333; color:#fff; border:none; }
-.shake { animation: shake 0.2s; }
-@keyframes shake { 0%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(5px);}75%{transform:translateX(-5px);}100%{transform:translateX(0);} }
+.shake { transform:translateX(5px); }
 #stats { margin-top:15px; text-align:center; }
 #share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
 .share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
@@ -69,17 +68,15 @@ h1 { margin-bottom: 10px; }
 <script src="theme.js"></script>
 <script>
 const MAX_TRIES = 3;
-const todayKey = new Date().toISOString().slice(0,10);
-const themeKeys = Object.keys(THEMES);
-const themeIndex = new Date().getDate() % themeKeys.length;
-const theme = themeKeys[themeIndex];
-const words = THEMES[theme].map(w=>w.toUpperCase());
-const wordIndex = new Date().getDate() % words.length;
-const wordOfDay = words[wordIndex];
-document.getElementById('theme').textContent = 'Theme: ' + theme;
+let todayKey = new Date().toISOString().slice(0,10);
+let themeKeys = Object.keys(THEMES);
+let themeIndex = Math.floor(new Date().getDate() % themeKeys.length);
+let theme = themeKeys[themeIndex];
+let words = THEMES[theme];
+let wordIndex = Math.floor(new Date().getDate() % words.length);
+let wordOfDay = words[wordIndex].toUpperCase();
 
-// Validation set global pour tous les mots
-const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
+document.getElementById('theme').textContent = 'Theme: ' + theme;
 
 const input = document.getElementById('word-input');
 const btn = document.getElementById('validate-btn');
@@ -90,51 +87,45 @@ let tries = 0;
 
 // Stats
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
-function updateStatsDisplay(){
+document.getElementById('played').textContent = stats.played;
+document.getElementById('won').textContent = stats.won;
+document.getElementById('streak').textContent = stats.streak;
+document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won / stats.played * 100) : 0;
+
+function updateStats(win){
+  stats.played++;
+  if(win) stats.won++, stats.streak++;
+  else stats.streak=0;
+  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
   document.getElementById('played').textContent = stats.played;
   document.getElementById('won').textContent = stats.won;
   document.getElementById('streak').textContent = stats.streak;
-  document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
-}
-updateStatsDisplay();
-function updateStats(win){
-  stats.played++;
-  if(win){ stats.won++; stats.streak++; } else stats.streak=0;
-  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
-  updateStatsDisplay();
+  document.getElementById('winpercent').textContent = Math.round(stats.won / stats.played *100);
 }
 
-// Création ligne vide
-function createRow(guess){
+function displayGuessWithDelay(guess){
   const row = document.createElement('div');
   row.className='row';
-  for(let i=0;i<guess.length;i++){
-    const span = document.createElement('div');
-    span.className='letter';
-    row.appendChild(span);
-  }
   history.appendChild(row);
-  return row;
-}
 
-// Animation lettre par lettre
-function fillRow(row, guess){
-  guess.split('').forEach((letter,i)=>{
+  guess.split('').forEach((letter, i) => {
     setTimeout(()=>{
-      const cell = row.children[i];
-      cell.textContent = letter;
-      if(wordOfDay[i]===letter) cell.classList.add('correct');
-      else if(wordOfDay.includes(letter)) cell.classList.add('present');
-      else cell.classList.add('absent');
+      const span = document.createElement('div');
+      span.className='letter';
+      span.textContent = letter;
+      if(wordOfDay[i]===letter) span.classList.add('correct');
+      else if(wordOfDay.includes(letter)) span.classList.add('present');
+      else span.classList.add('absent');
+      row.appendChild(span);
       row.classList.add('shake');
       setTimeout(()=>row.classList.remove('shake'),200);
     }, i*600);
   });
 }
 
-// Partage
 function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
-function shareWord(){
+
+function shareWord(){ 
   shareContainer.innerHTML='';
   const link=document.createElement('div');
   link.className='share-link';
@@ -143,46 +134,38 @@ function shareWord(){
   shareContainer.appendChild(link);
 }
 
-// Validation
 function validateWord(){
-  let guess = input.value.trim().toUpperCase();
+  let guess=input.value.trim().toUpperCase();
   if(!guess) return;
-
-  if(!ALL_WORDS.has(guess)){
+  if(!words.includes(guess)){
     errorMsg.textContent='Mot invalide !';
     input.classList.add('invalid');
     return;
   }
-
-  input.classList.remove('invalid');
   errorMsg.textContent='';
-
-  const row = createRow(guess);
-  fillRow(row, guess);
+  input.classList.remove('invalid');
+  displayGuessWithDelay(guess);
   tries++;
-
-  const delay = guess.length*600 + 100;
-  if(guess === wordOfDay){
+  if(guess===wordOfDay){
     setTimeout(()=>{
-      updateStats(true);
       alert('Bravo ! Mot trouvé.');
       input.disabled=true; btn.disabled=true;
+      updateStats(true);
       shareWord();
-    }, delay);
-  } else if(tries >= MAX_TRIES){
+    }, guess.length*600+100);
+  } else if(tries>=MAX_TRIES){
     setTimeout(()=>{
-      updateStats(false);
       alert('Échec ! Le mot était : '+wordOfDay);
       input.disabled=true; btn.disabled=true;
+      updateStats(false);
       shareWord();
-    }, delay);
+    }, guess.length*600+100);
   }
-
   input.value='';
 }
 
 btn.addEventListener('click', validateWord);
-input.addEventListener('keypress',(e)=>{ if(e.key==='Enter') validateWord(); });
+input.addEventListener('keypress',(e)=>{if(e.key==='Enter') validateWord();});
 </script>
 </body>
 </html>
