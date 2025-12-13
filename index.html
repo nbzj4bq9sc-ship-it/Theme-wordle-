@@ -40,13 +40,12 @@ button { font-weight:bold; }
 </div>
 </div>
 
-<!-- Inclure ton theme.js -->
+<!-- Inclure ton theme.js avec les 3000 mots -->
 <script src="theme.js"></script>
 
 <script>
 window.onload = () => {
-
-  // Mot du jour identique pour tous
+  // Mot du jour identique
   const seed = Math.floor(Date.now() / 86400000);
   const themeNames = Object.keys(THEMES);
   const theme = themeNames[seed % themeNames.length];
@@ -60,7 +59,7 @@ window.onload = () => {
   const msg = document.getElementById("msg");
   const copyBtn = document.getElementById("copyResult");
 
-  // STATS
+  // Stats
   let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
   function updateStatsDisplay(){
     document.getElementById('played').textContent = stats.played;
@@ -76,14 +75,14 @@ window.onload = () => {
     updateStatsDisplay();
   }
 
-  // Validation stricte des mots
+  // Validation stricte
   const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
-  // BOARD
   const maxTries = 3;
   let tries = 0;
   let emojis = [];
 
+  // Création board
   for(let i=0;i<maxTries;i++){
     const row = document.createElement("div");
     row.className = "row";
@@ -94,7 +93,6 @@ window.onload = () => {
     board.appendChild(row);
   }
 
-  // Animation lettre par lettre
   function fillRow(row, guess){
     guess.split('').forEach((letter,i)=>{
       setTimeout(()=>{
@@ -109,14 +107,13 @@ window.onload = () => {
     });
   }
 
-  // VALIDATE WORD
   validate.onclick = () => {
     const guess = input.value.toUpperCase().trim();
     if(guess.length !== word.length) return;
 
     if(!ALL_WORDS.has(guess)){
       input.classList.add('invalid');
-      msg.textContent = "Word not valid in English!";
+      msg.textContent = "Word not valid in theme!";
       return;
     } else {
       input.classList.remove('invalid');
@@ -126,7 +123,6 @@ window.onload = () => {
     const row = board.children[tries];
     fillRow(row, guess);
 
-    // emojis for copy
     let line="";
     [...row.children].forEach((cell,i)=>{
       if(guess[i] === word[i]) line+="🟩";
@@ -146,14 +142,13 @@ window.onload = () => {
     }
   };
 
-  // COPY RESULT WITHOUT SPOILER
+  // Copy result
   copyBtn.onclick = ()=>{
     navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
     msg.textContent = "Result copied!";
   };
 
   input.addEventListener('keypress', e => { if(e.key==='Enter') validate.click(); });
-
 };
 </script>
 </body>
