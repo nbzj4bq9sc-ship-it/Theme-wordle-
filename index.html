@@ -5,43 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
 <style>
-body {
-  background-color: #121212;
-  color: #fff;
-  font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-h1 { margin-bottom: 10px; }
-#theme { font-weight: bold; font-size: 1.5em; margin-bottom: 15px; text-align:center; }
-#input-container { display:flex; margin-bottom:10px; }
-#word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; transition:border 0.3s; }
-#word-input.invalid { border: 2px solid #ff4c4c; }
-#validate-btn { font-size:1.3em; padding:10px 15px; margin-left:10px; cursor:pointer; border-radius:5px; border:none; background:#4caf50; color:#fff; }
-#error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
-#history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
-.row { display:flex; gap:5px; justify-content:center; }
-.letter {
-  display:inline-block;
-  width:30px;
-  height:30px;
-  line-height:30px;
-  text-align:center;
-  font-weight:bold;
-  font-size:1.2em;
-  border:2px solid #555;
-  border-radius:4px;
-  transition: transform 0.2s;
-}
-.correct { background-color:#4caf50; color:#fff; border:none; }
-.present { background-color:#ffeb3b; color:#000; border:none; }
-.absent { background-color:#333; color:#fff; border:none; }
-.shake { transform:translateX(5px); }
-#stats { margin-top:15px; text-align:center; }
-#share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
-.share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
+  body {
+    background-color: #121212;
+    color: #fff;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 10px; }
+  #theme { font-weight: bold; font-size: 1.5em; margin-bottom: 10px; text-align:center; }
+  #input-container { display: flex; margin-bottom: 10px; }
+  #word-input { font-size: 1.3em; padding: 10px; width: 200px; border-radius: 5px; border: none; }
+  #validate-btn { font-size: 1.3em; padding: 10px 15px; margin-left: 10px; cursor: pointer; border-radius:5px; border:none; background:#4caf50; color:#fff; }
+  #error-msg { color: #ff4c4c; height: 1.2em; margin-bottom: 10px; text-align:center; }
+  #history { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 15px; }
+  .guess { font-size: 1.3em; transition: transform 0.2s; padding:2px 5px; border-radius:3px; }
+  .shake { transform: translateX(5px); }
+  #stats { margin-top: 15px; text-align:center; }
+  #share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
+  .share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -85,7 +69,7 @@ const history = document.getElementById('history');
 const shareContainer = document.getElementById('share-container');
 let tries = 0;
 
-// Stats
+// Stats from localStorage
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
 document.getElementById('played').textContent = stats.played;
 document.getElementById('won').textContent = stats.won;
@@ -94,40 +78,36 @@ document.getElementById('winpercent').textContent = stats.played ? Math.round(st
 
 function updateStats(win){
   stats.played++;
-  if(win) stats.won++, stats.streak++;
-  else stats.streak=0;
+  if(win){
+    stats.won++;
+    stats.streak++;
+  } else {
+    stats.streak=0;
+  }
   localStorage.setItem('themeWordleStats', JSON.stringify(stats));
   document.getElementById('played').textContent = stats.played;
   document.getElementById('won').textContent = stats.won;
   document.getElementById('streak').textContent = stats.streak;
-  document.getElementById('winpercent').textContent = Math.round(stats.won / stats.played *100);
+  document.getElementById('winpercent').textContent = Math.round(stats.won / stats.played * 100);
 }
 
-function displayGuessWithDelay(guess){
-  const row = document.createElement('div');
-  row.className='row';
-  history.appendChild(row);
-
-  guess.split('').forEach((letter, i) => {
-    setTimeout(()=>{
-      const span = document.createElement('div');
-      span.className='letter';
-      span.textContent = letter;
-      if(wordOfDay[i]===letter) span.classList.add('correct');
-      else if(wordOfDay.includes(letter)) span.classList.add('present');
-      else span.classList.add('absent');
-      row.appendChild(span);
-      row.classList.add('shake');
-      setTimeout(()=>row.classList.remove('shake'),200);
-    }, i*600);
-  });
+function addGuess(text, success=false){
+  const div = document.createElement('div');
+  div.textContent = text.toUpperCase();
+  div.className='guess';
+  div.style.background=success ? '#4caf50' : '#333';
+  history.appendChild(div);
+  div.classList.add('shake');
+  setTimeout(()=>div.classList.remove('shake'),200);
 }
 
-function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
+function copyShare(text){
+  navigator.clipboard.writeText(text).then(()=>alert("Lien copié !"));
+}
 
-function shareWord(){ 
+function shareWord(win){
   shareContainer.innerHTML='';
-  const link=document.createElement('div');
+  const link = document.createElement('div');
   link.className='share-link';
   link.textContent='Share your result';
   link.addEventListener('click', ()=>copyShare(`I played Theme Wordle today! Can you guess the word?`));
@@ -135,37 +115,33 @@ function shareWord(){
 }
 
 function validateWord(){
-  let guess=input.value.trim().toUpperCase();
+  let guess = input.value.trim().toUpperCase();
   if(!guess) return;
   if(!words.includes(guess)){
     errorMsg.textContent='Mot invalide !';
-    input.classList.add('invalid');
     return;
   }
   errorMsg.textContent='';
-  input.classList.remove('invalid');
-  displayGuessWithDelay(guess);
+  addGuess(guess, guess===wordOfDay);
   tries++;
   if(guess===wordOfDay){
-    setTimeout(()=>{
-      alert('Bravo ! Mot trouvé.');
-      input.disabled=true; btn.disabled=true;
-      updateStats(true);
-      shareWord();
-    }, guess.length*600+100);
+    alert('Bravo ! Mot trouvé.');
+    input.disabled=true;
+    btn.disabled=true;
+    updateStats(true);
+    shareWord(true);
   } else if(tries>=MAX_TRIES){
-    setTimeout(()=>{
-      alert('Échec ! Le mot était : '+wordOfDay);
-      input.disabled=true; btn.disabled=true;
-      updateStats(false);
-      shareWord();
-    }, guess.length*600+100);
+    alert('Échec ! Le mot était : ' + wordOfDay);
+    input.disabled=true;
+    btn.disabled=true;
+    updateStats(false);
+    shareWord(false);
   }
   input.value='';
 }
 
 btn.addEventListener('click', validateWord);
-input.addEventListener('keypress',(e)=>{if(e.key==='Enter') validateWord();});
+input.addEventListener('keypress', (e)=>{if(e.key==='Enter') validateWord();});
 </script>
 </body>
 </html>
