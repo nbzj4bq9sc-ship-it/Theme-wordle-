@@ -4,187 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
+
 <style>
 body {
-  background-color: #121212;
-  color: #fff;
-  font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
+  background:#121212;
+  color:white;
+  font-family:system-ui;
+  margin:0;
+  padding:16px;
 }
-h1 { margin-bottom: 10px; }
-#theme { font-weight: bold; font-size: 1.5em; margin-bottom: 15px; text-align:center; }
-#input-container { display:flex; margin-bottom:10px; }
-#word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; transition:border 0.3s; }
-#word-input.invalid { border:2px solid #ff4c4c; }
-#validate-btn { font-size:1.3em; padding:10px 15px; margin-left:10px; cursor:pointer; border-radius:5px; border:none; background:#4caf50; color:#fff; }
-#error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
-#history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
-.row { display:flex; gap:5px; justify-content:center; }
-.letter {
-  display:inline-block;
-  width:40px;
-  height:40px;
-  line-height:40px;
+.app {
+  max-width:420px;
+  margin:auto;
+}
+h1 { text-align:center; }
+.hint {
+  background:#1e1e1e;
+  padding:14px;
+  border-radius:10px;
   text-align:center;
-  font-weight:bold;
-  font-size:1.3em;
-  border:2px solid #555;
-  border-radius:4px;
-  transition: transform 0.2s;
+  margin-bottom:16px;
+  font-size:1.1rem;
 }
-.correct { background-color:#4caf50; color:#fff; border:none; }
-.present { background-color:#ffeb3b; color:#000; border:none; }
-.absent { background-color:#333; color:#fff; border:none; }
-.shake { animation: shake 0.2s; }
-@keyframes shake { 0%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(5px);}75%{transform:translateX(-5px);}100%{transform:translateX(0);} }
-#stats { margin-top:15px; text-align:center; }
-#share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
-.share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
+.board { display:grid; gap:10px; margin-bottom:16px; }
+.row { display:grid; gap:8px; }
+.cell {
+  background:#1e1e1e;
+  border:2px solid #333;
+  height:56px;
+  font-size:1.6rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+.correct { background:#4caf50; }
+.present { background:#fbc02d; color:black; }
+.absent { background:#555; }
+
+input, button {
+  width:100%;
+  height:56px;
+  font-size:1.2rem;
+  border-radius:10px;
+  border:none;
+  margin-bottom:10px;
+}
+button { font-weight:bold; }
+.hidden { display:none; }
+#msg { text-align:center; color:#fbc02d; margin-bottom:10px; }
 </style>
 </head>
+
 <body>
+<div class="app">
 
 <h1>Theme Wordle</h1>
-<div id="theme">Theme: ...</div>
 
-<div id="input-container">
-  <input type="text" id="word-input" placeholder="Enter word"/>
-  <button id="validate-btn">Valider le mot</button>
-</div>
-<div id="error-msg"></div>
-<div id="history"></div>
+<div class="hint" id="hint">Loading…</div>
 
-<div id="stats">
-  <div>Played: <span id="played">0</span></div>
-  <div>Won: <span id="won">0</span></div>
-  <div>Win %: <span id="winpercent">0</span>%</div>
-  <div>Win Streak: <span id="streak">0</span></div>
+<div class="board" id="board"></div>
+
+<input id="input" placeholder="Type your word">
+<button id="validate">Validate</button>
+
+<div id="msg"></div>
+
+<button id="copyResult" class="hidden">Copy result</button>
+
 </div>
 
-<div id="share-container"></div>
-
-<!-- 1️⃣ Charger le fichier theme.js d'abord -->
-<script src="theme.js"></script>
-
-<!-- 2️⃣ Script principal -->
 <script>
-const MAX_TRIES = 3;
-const todayKey = new Date().toISOString().slice(0,10);
-const themeKeys = Object.keys(THEMES);
-const themeIndex = new Date().getDate() % themeKeys.length;
-const theme = themeKeys[themeIndex];
-const words = THEMES[theme].map(w=>w.toUpperCase());
-const wordIndex = new Date().getDate() % words.length;
-const wordOfDay = words[wordIndex];
-document.getElementById('theme').textContent = 'Theme: ' + theme;
+/* ✅ WORD DATA (INLINE FOR SAFETY) */
+const THEMES = {
+  Animals:["DOG","CAT","TIGER","PANDA","KOALA"],
+  Brands:["NIKE","APPLE","ADIDAS","TESLA","SONY"],
+  Objects:["TABLE","PHONE","CHAIR","BOOK","LAMP"],
+  Countries:["FRANCE","CANADA","BRAZIL","JAPAN","ITALY"]
+};
 
-const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
+/* DAILY SEED */
+const seed = Math.floor(Date.now() / 86400000);
+const themeNames = Object.keys(THEMES);
+const theme = themeNames[seed % themeNames.length];
+const word = THEMES[theme][seed % THEMES[theme].length];
 
-const input = document.getElementById('word-input');
-const btn = document.getElementById('validate-btn');
-const errorMsg = document.getElementById('error-msg');
-const history = document.getElementById('history');
-const shareContainer = document.getElementById('share-container');
+document.getElementById("hint").textContent =
+  `HINT: ${theme} • ${word.length} letters`;
+
+const board = document.getElementById("board");
+const input = document.getElementById("input");
+const validate = document.getElementById("validate");
+const msg = document.getElementById("msg");
+
+const maxTries = 3;
 let tries = 0;
+let emojis = [];
 
-// Stats
-let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
-function updateStatsDisplay(){
-  document.getElementById('played').textContent = stats.played;
-  document.getElementById('won').textContent = stats.won;
-  document.getElementById('streak').textContent = stats.streak;
-  document.getElementById('winpercent').textContent = stats.played ? Math.round(stats.won/stats.played*100) : 0;
-}
-updateStatsDisplay();
-function updateStats(win){
-  stats.played++;
-  if(win){ stats.won++; stats.streak++; } else stats.streak=0;
-  localStorage.setItem('themeWordleStats', JSON.stringify(stats));
-  updateStatsDisplay();
-}
-
-// Création ligne
-function createRow(guess){
-  const row = document.createElement('div');
-  row.className='row';
-  for(let i=0;i<guess.length;i++){
-    const span = document.createElement('div');
-    span.className='letter';
-    row.appendChild(span);
+for(let i=0;i<maxTries;i++){
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.gridTemplateColumns = `repeat(${word.length},1fr)`;
+  for(let j=0;j<word.length;j++){
+    row.appendChild(document.createElement("div")).className="cell";
   }
-  history.appendChild(row);
-  return row;
+  board.appendChild(row);
 }
 
-// Animation lettre par lettre
-function fillRow(row, guess){
-  guess.split('').forEach((letter,i)=>{
-    setTimeout(()=>{
-      const cell = row.children[i];
-      cell.textContent = letter;
-      if(wordOfDay[i]===letter) cell.classList.add('correct');
-      else if(wordOfDay.includes(letter)) cell.classList.add('present');
-      else cell.classList.add('absent');
-      row.classList.add('shake');
-      setTimeout(()=>row.classList.remove('shake'),200);
-    }, i*600);
+validate.onclick = () => {
+  const guess = input.value.toUpperCase();
+  if(guess.length !== word.length) return;
+
+  const row = board.children[tries];
+  let line = "";
+
+  [...row.children].forEach((cell,i)=>{
+    cell.textContent = guess[i];
+    if(guess[i] === word[i]){
+      cell.classList.add("correct"); line+="🟩";
+    } else if(word.includes(guess[i])){
+      cell.classList.add("present"); line+="🟨";
+    } else {
+      cell.classList.add("absent"); line+="⬛";
+    }
   });
-}
 
-// Partage
-function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
-function shareWord(){
-  shareContainer.innerHTML='';
-  const link=document.createElement('div');
-  link.className='share-link';
-  link.textContent='Share your result';
-  link.addEventListener('click', ()=>copyShare(`I played Theme Wordle today! Can you guess the word?`));
-  shareContainer.appendChild(link);
-}
-
-// Validation
-function validateWord(){
-  let guess = input.value.trim().toUpperCase();
-  if(!guess) return;
-
-  if(!ALL_WORDS.has(guess)){
-    errorMsg.textContent='Mot invalide !';
-    input.classList.add('invalid');
-    return;
-  }
-
-  input.classList.remove('invalid');
-  errorMsg.textContent='';
-
-  const row = createRow(guess);
-  fillRow(row, guess);
+  emojis.push(line);
   tries++;
+  input.value="";
 
-  const delay = guess.length*600 + 100;
-  if(guess === wordOfDay){
-    setTimeout(()=>{
-      updateStats(true);
-      alert('Bravo ! Mot trouvé.');
-      input.disabled=true; btn.disabled=true;
-      shareWord();
-    }, delay);
-  } else if(tries >= MAX_TRIES){
-    setTimeout(()=>{
-      updateStats(false);
-      alert('Échec ! Le mot était : '+wordOfDay);
-      input.disabled=true; btn.disabled=true;
-      shareWord();
-    }, delay);
+  if(guess === word || tries === maxTries){
+    input.disabled = true;
+    validate.disabled = true;
+    document.getElementById("copyResult").classList.remove("hidden");
   }
+};
 
-  input.value='';
-}
-
-btn.addEventListener('click', validateWord);
-input.addEventListener('keypress',(e)=>{ if(e.key==='Enter') validateWord(); });
+document.getElementById("copyResult").onclick = () => {
+  navigator.clipboard.writeText(
+    `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
+  );
+  msg.textContent = "Result copied!";
+};
 </script>
 
 </body>
