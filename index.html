@@ -44,11 +44,12 @@ button { font-weight:bold; }
 <script src="theme.js"></script>
 
 <script>
-/* DAILY SEED */
+// Mot du jour identique pour tous
 const seed = Math.floor(Date.now() / 86400000);
 const themeNames = Object.keys(THEMES);
 const theme = themeNames[seed % themeNames.length];
-const word = THEMES[theme][seed % THEMES[theme].length];
+const word = THEMES[theme][seed % THEMES[theme].length].toUpperCase();
+
 document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
 
 const board = document.getElementById("board");
@@ -57,7 +58,7 @@ const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copyResult");
 
-/* STATS */
+// STATS
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
 function updateStatsDisplay(){
   document.getElementById('played').textContent = stats.played;
@@ -73,10 +74,10 @@ function updateStats(win){
   updateStatsDisplay();
 }
 
-/* ALL WORDS SET */
+// Validation stricte des mots
 const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
-/* BOARD SETUP */
+// BOARD
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
@@ -91,7 +92,7 @@ for(let i=0;i<maxTries;i++){
   board.appendChild(row);
 }
 
-/* FILL ROW ANIMATION */
+// Animation lettre par lettre
 function fillRow(row, guess){
   guess.split('').forEach((letter,i)=>{
     setTimeout(()=>{
@@ -106,7 +107,7 @@ function fillRow(row, guess){
   });
 }
 
-/* VALIDATE WORD */
+// VALIDATE WORD
 validate.onclick = () => {
   const guess = input.value.toUpperCase().trim();
   if(guess.length !== word.length) return;
@@ -123,6 +124,7 @@ validate.onclick = () => {
   const row = board.children[tries];
   fillRow(row, guess);
 
+  // emojis for copy
   let line="";
   [...row.children].forEach((cell,i)=>{
     if(guess[i] === word[i]) line+="🟩";
@@ -142,7 +144,7 @@ validate.onclick = () => {
   }
 };
 
-/* COPY RESULT WITHOUT SPOILER */
+// COPY RESULT WITHOUT SPOILER
 copyBtn.onclick = ()=>{
   navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
   msg.textContent = "Result copied!";
