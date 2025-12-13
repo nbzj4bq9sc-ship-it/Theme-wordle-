@@ -40,19 +40,20 @@ button { font-weight:bold; }
 </div>
 </div>
 
-<!-- Inclure ton themes.js avant le script principal -->
-<script src="themes.js"></script>
+<!-- 1️⃣ Charger ton themes.js avec les 3000 mots -->
+<script src="themes.js" defer></script>
 
-<script>
+<!-- 2️⃣ Script principal -->
+<script defer>
 window.onload = () => {
   const MAX_TRIES = 3;
+  if(!THEMES){ alert("themes.js not loaded!"); return; }
+
   const seed = Math.floor(Date.now()/86400000);
   const themeNames = Object.keys(THEMES);
   const theme = themeNames[seed % themeNames.length];
   const words = THEMES[theme].map(w=>w.toUpperCase());
   const word = words[seed % words.length];
-
-  document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
 
   const board = document.getElementById("board");
   const input = document.getElementById("input");
@@ -60,6 +61,9 @@ window.onload = () => {
   const msg = document.getElementById("msg");
   const copyBtn = document.getElementById("copyResult");
 
+  document.getElementById("hint").textContent = `HINT: ${theme} • ${word.length} letters`;
+
+  // Stats
   let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
   function updateStatsDisplay(){
     document.getElementById('played').textContent = stats.played;
@@ -102,23 +106,23 @@ window.onload = () => {
     });
   }
 
-  validate.onclick = () => {
+  function processGuess(){
     const guess = input.value.toUpperCase().trim();
     if(guess.length !== word.length) return;
 
-    let valid = ALL_WORDS.has(guess);
     input.classList.remove('invalid');
-    msg.textContent = "";
+    msg.textContent="";
 
+    const valid = ALL_WORDS.has(guess);
     if(!valid){
       input.classList.add('invalid');
-      msg.textContent = "Word not in theme!";
+      msg.textContent="Word not in theme! (counts as attempt)";
     }
 
     const row = board.children[tries];
     fillRow(row, guess);
 
-    // Générer emoji line pour partage
+    // Emoji line pour partager
     let line="";
     [...row.children].forEach((cell,i)=>{
       if(guess[i] === word[i]) line+="🟩";
@@ -131,22 +135,23 @@ window.onload = () => {
     input.value="";
 
     if(guess === word){
-      input.disabled = true; validate.disabled=true;
+      input.disabled=true; validate.disabled=true;
       updateStats(true);
       copyBtn.classList.remove('hidden');
-    } else if(tries >= MAX_TRIES){
-      input.disabled = true; validate.disabled=true;
+    } else if(tries>=MAX_TRIES){
+      input.disabled=true; validate.disabled=true;
       updateStats(false);
       copyBtn.classList.remove('hidden');
     }
-  };
+  }
+
+  validate.onclick = processGuess;
+  input.addEventListener('keypress', e=>{if(e.key==='Enter') processGuess();});
 
   copyBtn.onclick = ()=>{
     navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
     msg.textContent = "Result copied!";
   };
-
-  input.addEventListener('keypress', e => { if(e.key==='Enter') validate.click(); });
 };
 </script>
 </body>
