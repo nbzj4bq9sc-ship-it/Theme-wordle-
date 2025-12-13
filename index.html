@@ -5,9 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Theme Wordle</title>
 <style>
-body { background:#121212; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px; }
-h1 { margin-bottom:10px; }
-#theme { font-weight:bold; font-size:1.5em; margin-bottom:15px; text-align:center; }
+body {
+  background-color: #121212;
+  color: #fff;
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+h1 { margin-bottom: 10px; }
+#theme { font-weight: bold; font-size: 1.5em; margin-bottom: 15px; text-align:center; }
 #input-container { display:flex; margin-bottom:10px; }
 #word-input { font-size:1.3em; padding:10px; width:200px; border-radius:5px; border:none; transition:border 0.3s; }
 #word-input.invalid { border:2px solid #ff4c4c; }
@@ -15,12 +23,23 @@ h1 { margin-bottom:10px; }
 #error-msg { color:#ff4c4c; height:1.2em; margin-bottom:10px; text-align:center; }
 #history { display:flex; flex-direction:column; gap:5px; margin-bottom:15px; }
 .row { display:flex; gap:5px; justify-content:center; }
-.letter { display:inline-block; width:35px; height:35px; line-height:35px; text-align:center; font-weight:bold; font-size:1.2em; border:2px solid #555; border-radius:4px; }
+.letter {
+  display:inline-block;
+  width:40px;
+  height:40px;
+  line-height:40px;
+  text-align:center;
+  font-weight:bold;
+  font-size:1.3em;
+  border:2px solid #555;
+  border-radius:4px;
+  transition: transform 0.2s;
+}
 .correct { background-color:#4caf50; color:#fff; border:none; }
 .present { background-color:#ffeb3b; color:#000; border:none; }
 .absent { background-color:#333; color:#fff; border:none; }
 .shake { animation: shake 0.2s; }
-@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+@keyframes shake { 0%{transform:translateX(0);}25%{transform:translateX(-5px);}50%{transform:translateX(5px);}75%{transform:translateX(-5px);}100%{transform:translateX(0);} }
 #stats { margin-top:15px; text-align:center; }
 #share-container { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; justify-content:center; }
 .share-link { background:#333; padding:5px 10px; border-radius:5px; cursor:pointer; }
@@ -50,21 +69,18 @@ h1 { margin-bottom:10px; }
 <script src="theme.js"></script>
 <script>
 const MAX_TRIES = 3;
-
-// --- Choix du thème et mot du jour ---
-let todayKey = new Date().toISOString().slice(0,10);
-let themeKeys = Object.keys(THEMES);
-let themeIndex = new Date().getDate() % themeKeys.length;
-let theme = themeKeys[themeIndex];
-let words = THEMES[theme].map(w=>w.toUpperCase());
-let wordIndex = new Date().getDate() % words.length;
-let wordOfDay = words[wordIndex];
+const todayKey = new Date().toISOString().slice(0,10);
+const themeKeys = Object.keys(THEMES);
+const themeIndex = new Date().getDate() % themeKeys.length;
+const theme = themeKeys[themeIndex];
+const words = THEMES[theme].map(w=>w.toUpperCase());
+const wordIndex = new Date().getDate() % words.length;
+const wordOfDay = words[wordIndex];
 document.getElementById('theme').textContent = 'Theme: ' + theme;
 
-// --- Set global pour validation stricte ---
+// Validation set global pour tous les mots
 const ALL_WORDS = new Set([].concat(...Object.values(THEMES)).map(w=>w.toUpperCase()));
 
-// --- DOM ---
 const input = document.getElementById('word-input');
 const btn = document.getElementById('validate-btn');
 const errorMsg = document.getElementById('error-msg');
@@ -72,7 +88,7 @@ const history = document.getElementById('history');
 const shareContainer = document.getElementById('share-container');
 let tries = 0;
 
-// --- STATS ---
+// Stats
 let stats = JSON.parse(localStorage.getItem('themeWordleStats')) || {played:0, won:0, streak:0};
 function updateStatsDisplay(){
   document.getElementById('played').textContent = stats.played;
@@ -88,7 +104,7 @@ function updateStats(win){
   updateStatsDisplay();
 }
 
-// --- Préparer ligne vide ---
+// Création ligne vide
 function createRow(guess){
   const row = document.createElement('div');
   row.className='row';
@@ -101,7 +117,7 @@ function createRow(guess){
   return row;
 }
 
-// --- Animation lettre par lettre ---
+// Animation lettre par lettre
 function fillRow(row, guess){
   guess.split('').forEach((letter,i)=>{
     setTimeout(()=>{
@@ -116,7 +132,7 @@ function fillRow(row, guess){
   });
 }
 
-// --- PARTAGE ---
+// Partage
 function copyShare(text){ navigator.clipboard.writeText(text).then(()=>alert("Lien copié !")); }
 function shareWord(){
   shareContainer.innerHTML='';
@@ -127,7 +143,7 @@ function shareWord(){
   shareContainer.appendChild(link);
 }
 
-// --- VALIDATION ---
+// Validation
 function validateWord(){
   let guess = input.value.trim().toUpperCase();
   if(!guess) return;
@@ -148,16 +164,16 @@ function validateWord(){
   const delay = guess.length*600 + 100;
   if(guess === wordOfDay){
     setTimeout(()=>{
+      updateStats(true);
       alert('Bravo ! Mot trouvé.');
       input.disabled=true; btn.disabled=true;
-      updateStats(true);
       shareWord();
     }, delay);
   } else if(tries >= MAX_TRIES){
     setTimeout(()=>{
+      updateStats(false);
       alert('Échec ! Le mot était : '+wordOfDay);
       input.disabled=true; btn.disabled=true;
-      updateStats(false);
       shareWord();
     }, delay);
   }
@@ -165,7 +181,6 @@ function validateWord(){
   input.value='';
 }
 
-// --- EVENTS ---
 btn.addEventListener('click', validateWord);
 input.addEventListener('keypress',(e)=>{ if(e.key==='Enter') validateWord(); });
 </script>
