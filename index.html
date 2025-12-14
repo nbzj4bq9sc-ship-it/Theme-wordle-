@@ -53,10 +53,14 @@ h1 { text-align:center; margin-bottom:8px; }
 .absent  { background:#555; border:none; }
 
 input, button {
+  width:48%;
+  height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
   margin-bottom:10px;
+  display:inline-block;
+  vertical-align:middle;
 }
 input.error {
   background:#3a1515;
@@ -84,17 +88,6 @@ button {
 }
 
 .hidden { display:none; }
-
-/* Uniform input/button size */
-input, button {
-  width:48%;
-  height:48px;
-}
-.input-container {
-  display:flex;
-  justify-content:space-between;
-  gap:4%;
-}
 </style>
 </head>
 
@@ -107,10 +100,8 @@ input, button {
 
 <div class="board" id="board"></div>
 
-<div class="input-container">
-  <input id="input" placeholder="Type your word" />
-  <button id="validate">Validate</button>
-</div>
+<input id="input" placeholder="Type your word" />
+<button id="validate">Validate</button>
 
 <div id="msg"></div>
 
@@ -125,6 +116,7 @@ input, button {
 
 </div>
 
+<!-- ⚠️ IMPORTANT : themes.js AVANT le script principal -->
 <script src="themes.js"></script>
 
 <script>
@@ -134,38 +126,28 @@ if (!Array.isArray(WORDS) || WORDS.length === 0) {
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- 12h WORD LOGIC ---------- */
+/* ---------- WORD OF THE INTERVAL ---------- */
 const now = new Date();
 const hour = now.getHours();
-const interval = hour < 12 ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0) 
-                            : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12,0,0);
+const intervalIndex = hour < 12 ? 0 : 1; // 0 = 00-12, 1 = 12-00
+const daySeed = Math.floor(Date.now()/86400000);
+const rng = (seed) => {
+  let x = Math.sin(seed)*10000;
+  return x - Math.floor(x);
+};
 
-const lastWordsKey = "themeWordleLast30";
-let lastWords = JSON.parse(localStorage.getItem(lastWordsKey)) || [];
+/* Exclude last 30 words */
+const recent = JSON.parse(localStorage.getItem("recentWords")||"[]");
+let wordObj;
+do {
+  wordObj = WORDS[Math.floor(rng(daySeed + intervalIndex) * WORDS.length)];
+} while(recent.includes(wordObj.word));
+recent.push(wordObj.word);
+if (recent.length>30) recent.shift();
+localStorage.setItem("recentWords", JSON.stringify(recent));
 
-function getRandomWord(){
-  const candidates = WORDS.filter(w => !lastWords.includes(w.word));
-  if(candidates.length === 0) lastWords = [];
-  const wordObj = candidates[Math.floor(Math.random()*candidates.length)];
-  lastWords.push(wordObj.word);
-  if(lastWords.length>30) lastWords.shift();
-  localStorage.setItem(lastWordsKey, JSON.stringify(lastWords));
-  return wordObj;
-}
-
-// Stock in localStorage per interval
-const intervalKey = "themeWordleInterval";
-let stored = JSON.parse(localStorage.getItem(intervalKey));
-let daily;
-if(!stored || stored.time !== interval.getTime()){
-  daily = getRandomWord();
-  localStorage.setItem(intervalKey, JSON.stringify({time: interval.getTime(), word: daily.word, theme: daily.theme}));
-}else{
-  daily = {word: stored.word, theme: stored.theme};
-}
-
-const word = daily.word.toUpperCase();
-const theme = daily.theme.toUpperCase();
+const word = wordObj.word.toUpperCase();
+const theme = wordObj.theme;
 
 /* ---------- UI ---------- */
 const hint = document.getElementById("hint");
@@ -208,52 +190,43 @@ function renderStats(){
 }
 renderStats();
 
-/* ---------- TIMER & ALREADY PLAYED ---------- */
-const lastPlayKey = "themeWordleLastPlay";
-let lastPlay = JSON.parse(localStorage.getItem(lastPlayKey));
-const nowTime = Date.now();
-if(lastPlay && nowTime - lastPlay < 12*60*60*1000){
-  input.disabled = true;
-  validate.disabled = true;
-  msg.textContent = "😎 You have already played today. Share to your friends and come back later!";
-  const remaining = 12*60*60*1000 - (nowTime - lastPlay);
-  setInterval(()=>{
-    let r = new Date(remaining - (Date.now()-nowTime));
-    if(r<=0) return;
-    const h = String(r.getUTCHours()).padStart(2,'0');
-    const m = String(r.getUTCMinutes()).padStart(2,'0');
-    const s = String(r.getUTCSeconds()).padStart(2,'0');
-    hint.textContent = `Next word in ${h}:${m}:${s}`;
-  },1000);
-}
-
 /* ---------- VALIDATE ---------- */
 validate.onclick = () => {
   input.classList.remove("error");
   msg.textContent = "";
 
   const guess = input.value.toUpperCase().trim();
-  if(guess.length !== word.length){
+
+  if (guess.length !== word.length) {
     msg.textContent = "Wrong length";
     return;
   }
 
   const row = board.children[tries];
 
+  /* PLACE GUESS IN GRID */
+  let line = "";
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
-    if(guess[i] === word[i]) cell.classList.add("correct");
-    else if(word.includes(guess[i])) cell.classList.add("present");
-    else cell.classList.add("absent");
+    if (guess[i] === word[i]) {
+      cell.classList.add("correct"); line+="🟩";
+    } else if (word.includes(guess[i])) {
+      cell.classList.add("present"); line+="🟨";
+    } else {
+      cell.classList.add("absent"); line+="⬛";
+    }
   });
 
-  emojis.push([...row.children].map(c=>c.classList.contains("correct")?"🟩":c.classList.contains("present")?"🟨":"⬛").join(''));
-
+  emojis.push(line);
   tries++;
   input.value = "";
 
-  if(guess===word) endGame(true);
-  else if(tries===maxTries) endGame(false);
+  /* INPUT COLOR */
+  if(guess === word) input.style.background="#4caf50";
+  else input.style.background="#3a1515";
+
+  if (guess === word) endGame(true);
+  else if (tries === maxTries) endGame(false);
 };
 
 /* ---------- END GAME ---------- */
@@ -263,25 +236,51 @@ function endGame(win){
   copyBtn.classList.remove("hidden");
 
   stats.played++;
-  if(win){
+  if (win) {
     stats.wins++;
     stats.streak++;
-    msg.textContent="You win!";
-  }else{
-    stats.streak=0;
-    msg.textContent=`Word was: ${word}`;
+    msg.textContent = "You win!";
+  } else {
+    stats.streak = 0;
+    msg.textContent = `Word was: ${word}`;
   }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
-  localStorage.setItem(lastPlayKey, Date.now());
   renderStats();
 }
 
 /* ---------- SHARE ---------- */
 copyBtn.onclick = () => {
-  navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
-  msg.textContent="Copied to clipboard!";
+  navigator.clipboard.writeText(
+    `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
+  );
+  msg.textContent = "Copied to clipboard!";
 };
+
+/* ---------- INTERVAL TIMER ---------- */
+const nextInterval = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour<12?12:24,0,0);
+const timer = setInterval(()=>{
+  const remaining = nextInterval - new Date();
+  if(remaining<=0) {
+    clearInterval(timer);
+    location.reload();
+  } else {
+    const h = String(Math.floor(remaining/3600000)).padStart(2,'0');
+    const m = String(Math.floor((remaining%3600000)/60000)).padStart(2,'0');
+    const s = String(Math.floor((remaining%60000)/1000)).padStart(2,'0');
+    hint.textContent = `Next word in ${h}:${m}:${s} • Theme: ${theme} • ${word.length} letters`;
+  }
+},1000);
+
+/* ---------- PREVENT MULTIPLE PLAYS ---------- */
+const lastPlay = parseInt(localStorage.getItem("lastPlay")||"0");
+if(Date.now() - lastPlay < 0) {
+  input.disabled = true;
+  validate.disabled = true;
+  msg.textContent = "😎 You've already played. Share to your friends and come back at the next word!";
+}
+localStorage.setItem("lastPlay", Date.now());
 </script>
+
 </body>
 </html>
