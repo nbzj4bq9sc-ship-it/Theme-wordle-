@@ -16,9 +16,6 @@ body {
 .app {
   max-width:420px;
   margin:auto;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
 }
 h1 { text-align:center; margin-bottom:8px; }
 
@@ -29,14 +26,12 @@ h1 { text-align:center; margin-bottom:8px; }
   text-align:center;
   margin-bottom:16px;
   font-size:1.1rem;
-  width:100%;
 }
 
 .board {
   display:grid;
   gap:10px;
   margin-bottom:16px;
-  width:100%;
 }
 .row {
   display:grid;
@@ -57,32 +52,30 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-/* ---------- INPUT & BUTTON ---------- */
 input, button {
+  width:100%;
+  height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
   margin-bottom:10px;
-  width:calc(100% - 0px); /* full width */
-  max-width:300px; /* max width for mobile */
-  height:48px; /* same height for input & button */
-  display:block;
-  text-align:center;
-  box-sizing:border-box;
 }
 input.error {
   background:#3a1515;
   border:2px solid #ff5252;
   color:#ffb3b3;
 }
+input.success {
+  background:#15531a;
+  border:2px solid #4caf50;
+  color:#b3ffb3;
+}
+
 button {
   font-weight:bold;
   cursor:pointer;
-  background:#1e1e1e;
-  color:#fff;
 }
 
-/* ---------- MSG & STATS ---------- */
 #msg {
   text-align:center;
   color:#fbc02d;
@@ -126,23 +119,19 @@ button {
 
 </div>
 
-<!-- ⚠️ IMPORTANT : themes.js AVANT le script principal -->
 <script src="themes.js"></script>
 
 <script>
-/* ---------- SAFETY CHECK ---------- */
 if (!Array.isArray(WORDS) || WORDS.length === 0) {
   document.getElementById("hint").textContent = "ERROR: words not loaded";
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- DAILY WORD ---------- */
 const dayIndex = Math.floor(Date.now() / 86400000);
 const daily = WORDS[dayIndex % WORDS.length];
 const word = daily.word;
 const theme = daily.theme;
 
-/* ---------- UI ---------- */
 const hint = document.getElementById("hint");
 const board = document.getElementById("board");
 const input = document.getElementById("input");
@@ -152,12 +141,10 @@ const copyBtn = document.getElementById("copy");
 
 hint.textContent = `HINT: ${theme} • ${word.length} letters`;
 
-/* ---------- GAME STATE ---------- */
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
 
-/* ---------- BOARD ---------- */
 for (let i = 0; i < maxTries; i++) {
   const row = document.createElement("div");
   row.className = "row";
@@ -168,7 +155,6 @@ for (let i = 0; i < maxTries; i++) {
   board.appendChild(row);
 }
 
-/* ---------- STATS ---------- */
 const statsKey = "themeWordleStats";
 let stats = JSON.parse(localStorage.getItem(statsKey)) || {
   played:0, wins:0, streak:0
@@ -183,22 +169,8 @@ function renderStats(){
 }
 renderStats();
 
-/* ---------- HELPERS ---------- */
-function isValidWord(w){
-  return WORDS.some(x => x.word === w);
-}
-
-/* ---------- CHECK IF PLAYED TODAY ---------- */
-const playedToday = JSON.parse(localStorage.getItem("themeWordlePlayed")) || {};
-if (playedToday[dayIndex]) {
-  input.disabled = true;
-  validate.disabled = true;
-  msg.textContent = " 😎 You've already played today! Share to a friend and come back tomorrow.";
-}
-
-/* ---------- VALIDATE ---------- */
 validate.onclick = () => {
-  input.classList.remove("error");
+  input.classList.remove("error","success");
   msg.textContent = "";
 
   const guess = input.value.toUpperCase().trim();
@@ -209,15 +181,6 @@ validate.onclick = () => {
   }
 
   const row = board.children[tries];
-
-  /* INVALID WORD = only input red */
-  if (!isValidWord(guess)) {
-    input.classList.add("error");
-    msg.textContent = "Invalid word";
-    tries++;
-    if (tries === maxTries) endGame(false);
-    return;
-  }
 
   let line = "";
 
@@ -234,13 +197,18 @@ validate.onclick = () => {
 
   emojis.push(line);
   tries++;
-  input.value = "";
 
-  if (guess === word) endGame(true);
-  else if (tries === maxTries) endGame(false);
+  if (guess === word) {
+    input.classList.add("success");
+    endGame(true);
+  } else {
+    input.classList.add("error");
+    if (tries === maxTries) endGame(false);
+  }
+
+  input.value = "";
 };
 
-/* ---------- END GAME ---------- */
 function endGame(win){
   input.disabled = true;
   validate.disabled = true;
@@ -257,16 +225,9 @@ function endGame(win){
   }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
-
-  // mark played today
-  const playedToday = JSON.parse(localStorage.getItem("themeWordlePlayed")) || {};
-  playedToday[dayIndex] = true;
-  localStorage.setItem("themeWordlePlayed", JSON.stringify(playedToday));
-
   renderStats();
 }
 
-/* ---------- SHARE ---------- */
 copyBtn.onclick = () => {
   navigator.clipboard.writeText(
     `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
