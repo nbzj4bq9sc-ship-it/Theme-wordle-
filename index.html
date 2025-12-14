@@ -29,7 +29,7 @@ h1 { text-align:center; margin-bottom:8px; }
 }
 
 #timerLine { font-weight:600; margin-bottom:6px; }
-#themeLine { opacity:0.9; }
+#themeLine { opacity:0.9; font-size:1rem; }
 
 .board {
   display:grid;
@@ -55,12 +55,10 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-.controls,
-.copy-container {
+.controls {
   display:flex;
   justify-content:center;
   gap:8px;
-  margin-bottom:10px;
 }
 
 input, button {
@@ -89,6 +87,19 @@ button {
   min-height:1.2em;
 }
 
+/* ✅ COPY BUTTON CENTERED */
+#copy {
+  display:block;
+  margin:8px auto 16px auto;
+  width:140px;
+  height:44px;
+  font-size:1rem;
+  border-radius:10px;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+
 #stats {
   margin-top:16px;
   font-size:0.95rem;
@@ -98,6 +109,7 @@ button {
 
 .hidden { display:none; }
 
+/* 🎉 WIN ANIMATION (1s) */
 .win { animation: pop 1s ease-out; }
 @keyframes pop {
   0% { transform:scale(0.9); }
@@ -105,6 +117,7 @@ button {
   100% { transform:scale(1); }
 }
 
+/* ❌ LOSE ANIMATION (1s) */
 .lose { animation: shake 1s; }
 @keyframes shake {
   0% { transform:translateX(0); }
@@ -135,9 +148,7 @@ button {
 
 <div id="msg"></div>
 
-<div class="copy-container">
-  <button id="copy" class="hidden">Copy result</button>
-</div>
+<button id="copy" class="hidden">Copy result</button>
 
 <div id="stats">
   Played: <span id="played">0</span> •
@@ -151,17 +162,23 @@ button {
 <script src="themes.js"></script>
 
 <script>
-/* ---------- WORD ---------- */
+if (!Array.isArray(WORDS) || WORDS.length === 0) {
+  document.getElementById("timerLine").textContent = "ERROR: words not loaded";
+  throw new Error("WORDS not loaded");
+}
+
 const now = new Date();
 const intervalIndex = now.getHours() < 12 ? 0 : 1;
 const dateKey = now.getFullYear()*10000 + (now.getMonth()+1)*100 + now.getDate();
-const seed = dateKey * 2 + intervalIndex;
-const rng = s => (Math.sin(s)*10000)%1;
+const seed = dateKey*2 + intervalIndex;
+
+function rng(seed){ let x = Math.sin(seed)*10000; return x - Math.floor(x); }
+
 const wordObj = WORDS[Math.floor(rng(seed)*WORDS.length)];
 const word = wordObj.word.toUpperCase();
 const theme = wordObj.theme;
 
-/* ---------- UI ---------- */
+/* UI */
 const timerLine = document.getElementById("timerLine");
 const themeLine = document.getElementById("themeLine");
 const board = document.getElementById("board");
@@ -173,48 +190,46 @@ const app = document.querySelector(".app");
 
 themeLine.textContent = `HINT: ${theme} • ${word.length} letters`;
 
-/* ---------- STATS ---------- */
-const statsKey = "themeWordleStats";
-let stats = JSON.parse(localStorage.getItem(statsKey)) || {
-  played:0, wins:0, streak:0
-};
-
-function renderStats(){
-  document.getElementById("played").textContent = stats.played;
-  document.getElementById("wins").textContent = stats.wins;
-  document.getElementById("streak").textContent = stats.streak;
-  document.getElementById("rate").textContent =
-    stats.played ? Math.round(stats.wins / stats.played * 100) : 0;
-}
-renderStats();
-
-/* ---------- GAME ---------- */
+/* GAME STATE */
 const maxTries = 4;
 let tries = 0;
 let emojis = [];
 
+/* STORAGE KEYS */
 const gameKey = `themeWordleGame-${dateKey}-${intervalIndex}`;
+const statsKey = "themeWordleStats";
 const lastPlayKey = "lastPlayInterval";
 
-/* ---------- BOARD ---------- */
-for (let i=0;i<maxTries;i++){
+/* STATS */
+let stats = JSON.parse(localStorage.getItem(statsKey)) || {played:0,wins:0,streak:0};
+function renderStats(){
+  document.getElementById("played").textContent = stats.played;
+  document.getElementById("wins").textContent = stats.wins;
+  document.getElementById("streak").textContent = stats.streak;
+  document.getElementById("rate").textContent = stats.played ? Math.round(stats.wins/stats.played*100) : 0;
+}
+renderStats();
+
+/* BOARD */
+for(let i=0;i<maxTries;i++){
   const row=document.createElement("div");
   row.className="row";
   row.style.gridTemplateColumns=`repeat(${word.length},1fr)`;
-  for(let j=0;j<word.length;j++) row.appendChild(document.createElement("div")).className="cell";
+  for(let j=0;j<word.length;j++){ row.appendChild(document.createElement("div")).className="cell"; }
   board.appendChild(row);
 }
 
-/* ---------- RESTORE ---------- */
-const saved = JSON.parse(localStorage.getItem(gameKey));
-if(saved){
-  tries=saved.tries;
-  emojis=saved.emojis;
-  saved.rows.forEach((r,i)=>{
-    r.forEach((c,j)=>{
-      const cell=board.children[i].children[j];
-      cell.textContent=c.letter;
-      cell.classList.add(c.state);
+/* RESTORE GAME */
+const savedGame = JSON.parse(localStorage.getItem(gameKey));
+if(savedGame){
+  tries=savedGame.tries;
+  emojis=savedGame.emojis;
+  savedGame.rows.forEach((rowData,i)=>{
+    const row=board.children[i];
+    rowData.forEach((cell,j)=>{
+      const c=row.children[j];
+      c.textContent=cell.letter;
+      c.classList.add(cell.state);
     });
   });
   input.disabled=true;
@@ -223,7 +238,69 @@ if(saved){
   msg.textContent="😎 You've already played. Share to your friends and come back at the next word!";
 }
 
-/* ---------- END GAME ---------- */
+/* VALIDATE */
+validate.onclick = ()=>{
+  msg.textContent="";
+  input.classList.remove("error");
+  const guess=input.value.toUpperCase().trim();
+
+  if(guess.length>word.length){
+    input.value="";
+    input.placeholder="Word too long";
+    input.classList.add("error");
+    return;
+  }
+  if(guess.length!==word.length) return;
+
+  const row=board.children[tries];
+  let line=[];
+  let emojiLine="";
+
+  [...row.children].forEach((cell,i)=>{
+    cell.textContent=guess[i];
+    if(guess[i]===word[i]){
+      cell.classList.add("correct"); emojiLine+="🟩";
+      line.push({letter:guess[i],state:"correct"});
+    }else if(word.includes(guess[i])){
+      cell.classList.add("present"); emojiLine+="🟨";
+      line.push({letter:guess[i],state:"present"});
+    }else{
+      cell.classList.add("absent"); emojiLine+="⬛";
+      line.push({letter:guess[i],state:"absent"});
+    }
+  });
+
+  emojis.push(emojiLine);
+  tries++;
+  saveGame();
+  input.value="";
+
+  if(guess===word) endGame(true);
+  else if(tries===maxTries) endGame(false);
+};
+
+input.oninput=()=>{
+  input.classList.remove("error");
+  input.placeholder="Word";
+};
+
+/* SAVE GAME */
+function saveGame(){
+  const rows=[];
+  for(let i=0;i<tries;i++){
+    const row=board.children[i];
+    const rowData=[...row.children].map(c=>({
+      letter:c.textContent,
+      state:c.classList.contains("correct")?"correct"
+           :c.classList.contains("present")?"present"
+           :"absent"
+    }));
+    rows.push(rowData);
+  }
+  localStorage.setItem(gameKey,JSON.stringify({tries,emojis,rows}));
+}
+
+/* END GAME */
 function endGame(win){
   input.disabled=true;
   validate.disabled=true;
@@ -231,26 +308,39 @@ function endGame(win){
   localStorage.setItem(lastPlayKey,`${dateKey}-${intervalIndex}`);
 
   stats.played++;
-  if(win){ stats.wins++; stats.streak++; msg.textContent="You win!"; app.classList.add("win"); }
-  else{ stats.streak=0; msg.textContent=`Word was: ${word}`; app.classList.add("lose"); }
-
+  if(win){
+    stats.wins++;
+    stats.streak++;
+    msg.textContent="You win!";
+    app.classList.add("win");
+  }else{
+    stats.streak=0;
+    msg.textContent=`Word was: ${word}`;
+    app.classList.add("lose");
+  }
   localStorage.setItem(statsKey,JSON.stringify(stats));
   renderStats();
 }
 
-/* ---------- SHARE ---------- */
-copyBtn.onclick=()=>{
+/* SHARE */
+copyBtn.onclick = ()=>{
   navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
   msg.textContent="Copied to clipboard!";
 };
 
-/* ---------- TIMER ---------- */
+/* TIMER */
 function updateTimer(){
   const now=new Date();
-  const next=new Date(now);
-  now.getHours()<12 ? next.setHours(12,0,0,0) : (next.setDate(next.getDate()+1),next.setHours(0,0,0,0));
-  const d=next-now;
-  timerLine.textContent=`⏳ Next word in ${String(d/36e5|0).padStart(2,"0")}:${String(d/6e4%60|0).padStart(2,"0")}:${String(d/1e3%60|0).padStart(2,"0")}`;
+  let next=new Date(now);
+  if(now.getHours()<12) next.setHours(12,0,0,0);
+  else { next.setDate(next.getDate()+1); next.setHours(0,0,0,0); }
+
+  const diff=next-now;
+  const h=String(Math.floor(diff/3600000)).padStart(2,'0');
+  const m=String(Math.floor(diff%3600000/60000)).padStart(2,'0');
+  const s=String(Math.floor(diff%60000/1000)).padStart(2,'0');
+
+  timerLine.textContent=`⏳ Next word in ${h}:${m}:${s}`;
 }
 updateTimer();
 setInterval(updateTimer,1000);
