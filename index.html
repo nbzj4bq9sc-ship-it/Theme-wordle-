@@ -53,25 +53,21 @@ h1 { text-align:center; margin-bottom:8px; }
 .absent  { background:#555; border:none; }
 
 input, button {
-  height:56px;
+  width:100%;
+  height:50px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
   margin-bottom:10px;
-}
-input {
-  width:calc(100% - 10px); /* harmonisé avec les boutons */
   display:block;
-  margin:auto;
 }
+input.error { background:#3a1515; border:2px solid #ff5252; color:#ffb3b3; }
+input.success { background:#1e4c1e; border:2px solid #4caf50; color:#b3ffb3; }
+
 button {
-  width:100%;
   font-weight:bold;
   cursor:pointer;
 }
-
-input.error { background:#3a1515; border:2px solid #ff5252; color:#ffb3b3; }
-input.correct { background:#1a4f1a; border:2px solid #4caf50; color:#b3ffb3; }
 
 #msg {
   text-align:center;
@@ -88,6 +84,11 @@ input.correct { background:#1a4f1a; border:2px solid #4caf50; color:#b3ffb3; }
 }
 
 .hidden { display:none; }
+
+.timer {
+  text-align:center;
+  margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -97,6 +98,8 @@ input.correct { background:#1a4f1a; border:2px solid #4caf50; color:#b3ffb3; }
 <h1>Theme Wordle</h1>
 
 <div class="hint" id="hint">Loading…</div>
+
+<div class="timer" id="timer"></div>
 
 <div class="board" id="board"></div>
 
@@ -116,45 +119,78 @@ input.correct { background:#1a4f1a; border:2px solid #4caf50; color:#b3ffb3; }
 
 </div>
 
+<!-- ⚠️ themes.js doit être chargé avant ce script -->
 <script src="themes.js"></script>
 
 <script>
+/* ---------- SAFETY CHECK ---------- */
 if (!Array.isArray(WORDS) || WORDS.length === 0) {
   document.getElementById("hint").textContent = "ERROR: words not loaded";
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- 12H TIMER ---------- */
-const lastPlayKey = "themeWordleLastPlay";
-const lastWordKey = "themeWordleLastWord";
-const now = Date.now();
-const lastPlay = parseInt(localStorage.getItem(lastPlayKey)) || 0;
+/* ---------- DAILY WORD / 12H ---------- */
+const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+let lastPlayedData = JSON.parse(localStorage.getItem("themeWordleLastPlay")) || {};
+let now = Date.now();
 
-let wordData;
-let playable = true;
-if (now - lastPlay < 12*60*60*1000) {
-  const storedWord = JSON.parse(localStorage.getItem(lastWordKey));
-  wordData = storedWord;
-  document.getElementById("msg").textContent = "😎 You have already played today. Share with a friend and come back in 12h.";
-  input.disabled = true;
-  document.getElementById("validate").disabled = true;
-  playable = false;
-} else {
-  wordData = WORDS[Math.floor(Math.random()*WORDS.length)];
-  localStorage.setItem(lastWordKey, JSON.stringify(wordData));
-  localStorage.setItem(lastPlayKey, now);
+let canPlay = true;
+let timeLeft = 0;
+
+if (lastPlayedData.timestamp && now - lastPlayedData.timestamp < TWELVE_HOURS) {
+  canPlay = false;
+  timeLeft = TWELVE_HOURS - (now - lastPlayedData.timestamp);
 }
 
-const word = wordData.word;
-const theme = wordData.theme;
+const getRandomWord = () => WORDS[Math.floor(Math.random() * WORDS.length)];
 
+let daily;
+if (canPlay) {
+  daily = getRandomWord();
+  lastPlayedData = { timestamp: now, word: daily.word };
+  localStorage.setItem("themeWordleLastPlay", JSON.stringify(lastPlayedData));
+} else {
+  daily = WORDS.find(x => x.word === lastPlayedData.word) || getRandomWord();
+}
+
+const word = daily.word;
+const theme = daily.theme;
+
+/* ---------- UI ---------- */
 const hint = document.getElementById("hint");
 const board = document.getElementById("board");
+const input = document.getElementById("input");
 const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
+const timerDiv = document.getElementById("timer");
 
 hint.textContent = `HINT: ${theme} • ${word.length} letters`;
+
+/* ---------- TIMER ---------- */
+function formatTime(ms){
+  let h = Math.floor(ms / 3600000);
+  let m = Math.floor((ms % 3600000) / 60000);
+  let s = Math.floor((ms % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+if (!canPlay) {
+  timerDiv.textContent = `😎 You've already played. Come back in ${formatTime(timeLeft)}`;
+}
+
+let timerInterval;
+if (!canPlay) {
+  timerInterval = setInterval(()=>{
+    timeLeft -= 1000;
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      location.reload(); // reload for new word
+    } else {
+      timerDiv.textContent = `😎 You've already played. Come back in ${formatTime(timeLeft)}`;
+    }
+  },1000);
+}
 
 /* ---------- GAME STATE ---------- */
 const maxTries = 3;
@@ -174,7 +210,10 @@ for (let i = 0; i < maxTries; i++) {
 
 /* ---------- STATS ---------- */
 const statsKey = "themeWordleStats";
-let stats = JSON.parse(localStorage.getItem(statsKey)) || { played:0, wins:0, streak:0 };
+let stats = JSON.parse(localStorage.getItem(statsKey)) || {
+  played:0, wins:0, streak:0
+};
+
 function renderStats(){
   document.getElementById("played").textContent = stats.played;
   document.getElementById("wins").textContent = stats.wins;
@@ -186,9 +225,9 @@ renderStats();
 
 /* ---------- VALIDATE ---------- */
 validate.onclick = () => {
-  if(!playable) return;
-
-  input.classList.remove("error","correct");
+  if(!canPlay) return;
+  input.classList.remove("error");
+  input.classList.remove("success");
   msg.textContent = "";
 
   const guess = input.value.toUpperCase().trim();
@@ -198,6 +237,7 @@ validate.onclick = () => {
   }
 
   const row = board.children[tries];
+
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
     if (guess[i] === word[i]) cell.classList.add("correct");
@@ -205,36 +245,35 @@ validate.onclick = () => {
     else cell.classList.add("absent");
   });
 
-  let line = "";
-  [...row.children].forEach((cell)=>{
-    if (cell.classList.contains("correct")) line+="🟩";
-    else if (cell.classList.contains("present")) line+="🟨";
-    else line+="⬛";
-  });
-  emojis.push(line);
+  tries++;
+  input.value = "";
 
   if (guess === word) {
-    input.classList.add("correct");
+    input.classList.add("success");
     endGame(true);
-  } else {
+  } else if (tries === maxTries) {
     input.classList.add("error");
-    tries++;
-    if (tries === maxTries) endGame(false);
+    endGame(false);
+  } else {
+    if (guess !== word) input.classList.add("error");
   }
-
-  input.value = "";
 };
 
 /* ---------- END GAME ---------- */
 function endGame(win){
-  playable = false;
   input.disabled = true;
   validate.disabled = true;
   copyBtn.classList.remove("hidden");
 
   stats.played++;
-  if (win) { stats.wins++; stats.streak++; msg.textContent = "You win!"; }
-  else { stats.streak=0; msg.textContent = `Word was: ${word}`; }
+  if (win) {
+    stats.wins++;
+    stats.streak++;
+    msg.textContent = "You win!";
+  } else {
+    stats.streak = 0;
+    msg.textContent = `Word was: ${word}`;
+  }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
   renderStats();
@@ -242,7 +281,9 @@ function endGame(win){
 
 /* ---------- SHARE ---------- */
 copyBtn.onclick = () => {
-  navigator.clipboard.writeText(`Theme Wordle\n${emojis.join("\n")}\nNo spoilers`);
+  navigator.clipboard.writeText(
+    `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
+  );
   msg.textContent = "Copied to clipboard!";
 };
 </script>
