@@ -52,6 +52,12 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
+.row.error .cell {
+  background: #3a1515 !important;
+  border: 2px solid #ff5252 !important;
+  color: #ffb3b3 !important;
+}
+
 input, button {
   width:100%;
   height:56px;
@@ -189,23 +195,13 @@ validate.onclick = () => {
   }
 
   const row = board.children[tries];
-
-  /* INVALID WORD = ERROR + TRY LOST */
-  if (!isValidWord(guess)) {
-    input.classList.add("error");
-    msg.textContent = "Invalid word";
-    tries++;
-    if (tries === maxTries) endGame(false);
-    return;
-  }
-
   let line = "";
 
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
-    if (guess[i] === word[i]) {
+    if(guess[i] === word[i]){
       cell.classList.add("correct"); line+="🟩";
-    } else if (word.includes(guess[i])) {
+    } else if(word.includes(guess[i])){
       cell.classList.add("present"); line+="🟨";
     } else {
       cell.classList.add("absent"); line+="⬛";
@@ -213,11 +209,19 @@ validate.onclick = () => {
   });
 
   emojis.push(line);
-  tries++;
-  input.value = "";
 
-  if (guess === word) endGame(true);
-  else if (tries === maxTries) endGame(false);
+  /* INVALID WORD = LINE RED + TRY LOST */
+  if(!isValidWord(guess)){
+    row.classList.add("error");
+    input.classList.add("error");
+    msg.textContent = "Invalid word";
+  }
+
+  tries++;
+  input.value="";
+
+  if(guess === word) endGame(true);
+  else if(tries === maxTries) endGame(false);
 };
 
 /* ---------- END GAME ---------- */
@@ -227,7 +231,7 @@ function endGame(win){
   copyBtn.classList.remove("hidden");
 
   stats.played++;
-  if (win) {
+  if(win){
     stats.wins++;
     stats.streak++;
     msg.textContent = "You win!";
