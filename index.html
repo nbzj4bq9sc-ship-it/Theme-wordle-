@@ -12,18 +12,16 @@ body {
   font-family:system-ui;
   margin:0;
   padding:16px;
-  display:flex;
-  justify-content:center;
 }
 .app {
   max-width:420px;
-  width:100%;
+  margin:auto;
 }
 h1 { text-align:center; margin-bottom:8px; }
 
 .hint {
   background:#1e1e1e;
-  padding:12px;
+  padding:14px;
   border-radius:10px;
   text-align:center;
   margin-bottom:16px;
@@ -54,27 +52,22 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-.input-group {
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
-input {
-  flex:1;
+input, button {
   height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
-  padding:0 12px;
-  text-align:center;
-  box-sizing:border-box;
+  margin-bottom:10px;
+}
+input {
+  width:calc(100% - 12px); /* harmonisation avec boutons */
+  display:block;
+  margin:auto;
 }
 button {
-  height:56px;
+  width:100%;
   font-weight:bold;
   cursor:pointer;
-  border-radius:10px;
-  flex:1;
 }
 
 #msg {
@@ -104,10 +97,8 @@ button {
 
 <div class="board" id="board"></div>
 
-<div class="input-group">
-  <input id="input" placeholder="Type your word" />
-  <button id="validate">Validate</button>
-</div>
+<input id="input" placeholder="Type your word" />
+<button id="validate">Validate</button>
 
 <div id="msg"></div>
 
@@ -159,9 +150,7 @@ for (let i = 0; i < maxTries; i++) {
 }
 
 const statsKey = "themeWordleStats";
-let stats = JSON.parse(localStorage.getItem(statsKey)) || {
-  played:0, wins:0, streak:0, lastDay:-1
-};
+let stats = JSON.parse(localStorage.getItem(statsKey)) || { played:0, wins:0, streak:0 };
 
 function renderStats(){
   document.getElementById("played").textContent = stats.played;
@@ -172,42 +161,42 @@ function renderStats(){
 }
 renderStats();
 
-// CHECK IF ALREADY PLAYED TODAY
-if(stats.lastDay === dayIndex){
-  input.disabled = true;
-  validate.disabled = true;
-  msg.textContent = " 😎 You already played today! Share your score to a friend and comeback tomorrow.";
-  copyBtn.classList.remove("hidden");
-}
-
 function isValidWord(w){
   return WORDS.some(x => x.word === w);
+}
+
+/* ---------- NEW: Check if already played today ---------- */
+const lastPlayedDay = parseInt(localStorage.getItem("themeWordleLastDay") || "-1");
+if(lastPlayedDay === dayIndex){
+  input.disabled = true;
+  validate.disabled = true;
+  msg.textContent = "🎯 You’ve already played today, come back tomorrow!";
 }
 
 validate.onclick = () => {
   msg.textContent = "";
   const guess = input.value.toUpperCase().trim();
-  if(guess.length !== word.length) {
+  if (guess.length !== word.length) {
     msg.textContent = "Wrong length";
     return;
   }
 
   const row = board.children[tries];
 
-  // Show correct/present/absent colors even if word not in list
-  let line = "";
+  // Show letters even if invalid word
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
-    if(guess[i] === word[i]){
-      cell.classList.add("correct"); line+="🟩";
-    } else if(word.includes(guess[i])){
-      cell.classList.add("present"); line+="🟨";
-    } else {
-      cell.classList.add("absent"); line+="⬛";
-    }
+    if (guess[i] === word[i]) cell.classList.add("correct");
+    else if (word.includes(guess[i])) cell.classList.add("present");
+    else cell.classList.add("absent");
   });
 
-  emojis.push(line);
+  emojis.push([...row.children].map(c=>{
+    if(c.classList.contains("correct")) return "🟩";
+    if(c.classList.contains("present")) return "🟨";
+    return "⬛";
+  }).join(""));
+
   tries++;
   input.value = "";
 
@@ -221,18 +210,17 @@ function endGame(win){
   copyBtn.classList.remove("hidden");
 
   stats.played++;
-  stats.lastDay = dayIndex;
-
   if(win){
     stats.wins++;
     stats.streak++;
-    msg.textContent = "🎉 You win!";
+    msg.textContent = "You win!";
   } else {
     stats.streak = 0;
     msg.textContent = `Word was: ${word}`;
   }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
+  localStorage.setItem("themeWordleLastDay", dayIndex.toString());
   renderStats();
 }
 
