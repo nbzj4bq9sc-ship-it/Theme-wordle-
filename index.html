@@ -53,24 +53,18 @@ h1 { text-align:center; margin-bottom:8px; }
 .absent  { background:#555; border:none; }
 
 input, button {
+  width:100%;
   height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
   margin-bottom:10px;
-}
-input {
-  width: calc(100% - 0px); /* harmonisé avec boutons */
-  padding:0 10px;
-}
-input.error {
-  background:#3a1515;
-  border:2px solid #ff5252;
-  color:#ffb3b3;
+  box-sizing: border-box;
+  text-align:center;
+  padding:0 12px;
 }
 
 button {
-  width:100%;
   font-weight:bold;
   cursor:pointer;
 }
@@ -118,23 +112,19 @@ button {
 
 </div>
 
-<!-- ⚠️ IMPORTANT : themes.js AVANT le script principal -->
 <script src="themes.js"></script>
 
 <script>
-/* ---------- SAFETY CHECK ---------- */
 if (!Array.isArray(WORDS) || WORDS.length === 0) {
   document.getElementById("hint").textContent = "ERROR: words not loaded";
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- DAILY WORD ---------- */
 const dayIndex = Math.floor(Date.now() / 86400000);
 const daily = WORDS[dayIndex % WORDS.length];
 const word = daily.word;
 const theme = daily.theme;
 
-/* ---------- UI ---------- */
 const hint = document.getElementById("hint");
 const board = document.getElementById("board");
 const input = document.getElementById("input");
@@ -144,12 +134,10 @@ const copyBtn = document.getElementById("copy");
 
 hint.textContent = `HINT: ${theme} • ${word.length} letters`;
 
-/* ---------- GAME STATE ---------- */
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
 
-/* ---------- BOARD ---------- */
 for (let i = 0; i < maxTries; i++) {
   const row = document.createElement("div");
   row.className = "row";
@@ -160,7 +148,6 @@ for (let i = 0; i < maxTries; i++) {
   board.appendChild(row);
 }
 
-/* ---------- STATS ---------- */
 const statsKey = "themeWordleStats";
 let stats = JSON.parse(localStorage.getItem(statsKey)) || {
   played:0, wins:0, streak:0
@@ -175,26 +162,24 @@ function renderStats(){
 }
 renderStats();
 
-/* ---------- HELPERS ---------- */
 function isValidWord(w){
   return WORDS.some(x => x.word === w);
 }
 
-/* ---------- VALIDATE ---------- */
 validate.onclick = () => {
   input.classList.remove("error");
   msg.textContent = "";
 
   const guess = input.value.toUpperCase().trim();
-
-  if (guess.length !== word.length) {
+  if(guess.length !== word.length) {
     msg.textContent = "Wrong length";
     return;
   }
 
   const row = board.children[tries];
-  let line = "";
 
+  // EVEN IF WORD INVALID: show correct/present/absent colors
+  let line = "";
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
     if(guess[i] === word[i]){
@@ -207,28 +192,20 @@ validate.onclick = () => {
   });
 
   emojis.push(line);
-
-  /* INVALID WORD = ONLY INPUT RED, BOARD STAYS NORMAL */
-  if(!isValidWord(guess)){
-    input.classList.add("error");
-    msg.textContent = "Invalid word";
-  }
-
   tries++;
-  input.value="";
+  input.value = "";
 
   if(guess === word) endGame(true);
   else if(tries === maxTries) endGame(false);
 };
 
-/* ---------- END GAME ---------- */
 function endGame(win){
   input.disabled = true;
   validate.disabled = true;
   copyBtn.classList.remove("hidden");
 
   stats.played++;
-  if (win) {
+  if(win){
     stats.wins++;
     stats.streak++;
     msg.textContent = "You win!";
@@ -241,7 +218,6 @@ function endGame(win){
   renderStats();
 }
 
-/* ---------- SHARE ---------- */
 copyBtn.onclick = () => {
   navigator.clipboard.writeText(
     `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
