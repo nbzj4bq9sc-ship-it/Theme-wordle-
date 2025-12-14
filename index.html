@@ -248,6 +248,7 @@ validate.onclick = ()=>{
     input.value="";
     input.placeholder="Word too long";
     input.classList.add("error");
+    msg.textContent = "⚠️ Word too long!";
     return;
   }
   if(guess.length!==word.length) return;
