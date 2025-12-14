@@ -52,23 +52,19 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-.input-row {
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  margin-bottom:10px;
-}
-
 input, button {
-  width:50%;
-  height:25px;
-  font-size:0.9rem;
+  width:48%;
+  height:40px;
+  font-size:1.2rem;
   border-radius:10px;
   border:none;
+  margin-bottom:10px;
 }
-input.error { background:#3a1515; border:2px solid #ff5252; color:#ffb3b3; }
-input.success { background:#1e4c1e; border:2px solid #4caf50; color:#b3ffb3; }
-input.disabled { background:#333; color:#888; cursor:not-allowed; }
+input.error {
+  background:#3a1515;
+  border:2px solid #ff5252;
+  color:#ffb3b3;
+}
 
 button {
   font-weight:bold;
@@ -91,9 +87,10 @@ button {
 
 .hidden { display:none; }
 
-.timer {
-  text-align:center;
-  margin-bottom:10px;
+input:disabled {
+  background:#333;
+  color:#777;
+  cursor:not-allowed;
 }
 </style>
 </head>
@@ -105,14 +102,10 @@ button {
 
 <div class="hint" id="hint">Loading…</div>
 
-<div class="timer" id="timer"></div>
-
 <div class="board" id="board"></div>
 
-<div class="input-row">
-  <input id="input" placeholder="Type your word" />
-  <button id="validate">Validate</button>
-</div>
+<input id="input" placeholder="Type your word" />
+<button id="validate">Validate</button>
 
 <div id="msg"></div>
 
@@ -130,79 +123,51 @@ button {
 <script src="themes.js"></script>
 
 <script>
-/* ---------- SAFETY CHECK ---------- */
 if (!Array.isArray(WORDS) || WORDS.length === 0) {
   document.getElementById("hint").textContent = "ERROR: words not loaded";
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- DAILY WORD / 12H ---------- */
-const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-let lastPlayedData = JSON.parse(localStorage.getItem("themeWordleLastPlay")) || {};
-let now = Date.now();
-
-let canPlay = true;
-let timeLeft = 0;
-
-if (lastPlayedData.timestamp && now - lastPlayedData.timestamp < TWELVE_HOURS) {
-  canPlay = false;
-  timeLeft = TWELVE_HOURS - (now - lastPlayedData.timestamp);
+/* ---------- HELPER: 12H INTERVAL ---------- */
+function getIntervalIndex() {
+  const now = new Date();
+  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const hoursSinceMidnight = now.getUTCHours();
+  // Each day has two intervals: 0-11h UTC, 12-23h UTC
+  return Math.floor((utcMidnight / 3600000 + hoursSinceMidnight) / 12);
 }
 
-const getRandomWord = () => WORDS[Math.floor(Math.random() * WORDS.length)];
+/* ---------- PICK DAILY WORD ---------- */
+const wordKey = "themeWordleWordHistory";
+let history = JSON.parse(localStorage.getItem(wordKey)) || [];
 
-let daily;
-if (canPlay) {
-  daily = getRandomWord();
-  lastPlayedData = { timestamp: now, word: daily.word };
-  localStorage.setItem("themeWordleLastPlay", JSON.stringify(lastPlayedData));
-} else {
-  daily = WORDS.find(x => x.word === lastPlayedData.word) || getRandomWord();
+const intervalIndex = getIntervalIndex();
+
+// If we have a word for this interval, reuse it
+let todayWordObj = history.find(h => h.interval===intervalIndex);
+
+if (!todayWordObj) {
+  // Take all words not in last 30
+  const last30Words = history.slice(-30).map(h=>h.word);
+  const availableWords = WORDS.filter(w=>!last30Words.includes(w.word));
+  const randomWord = availableWords[Math.floor(Math.random()*availableWords.length)];
+  todayWordObj = {interval: intervalIndex, word: randomWord.word, theme: randomWord.theme};
+  history.push(todayWordObj);
+  localStorage.setItem(wordKey, JSON.stringify(history));
 }
 
-const word = daily.word;
-const theme = daily.theme;
+const word = todayWordObj.word.toUpperCase();
+const theme = todayWordObj.theme;
 
-/* ---------- UI ---------- */
 const hint = document.getElementById("hint");
 const board = document.getElementById("board");
 const input = document.getElementById("input");
 const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
-const timerDiv = document.getElementById("timer");
 
 hint.textContent = `HINT: ${theme} • ${word.length} letters`;
 
-/* ---------- TIMER ---------- */
-function formatTime(ms){
-  let h = Math.floor(ms / 3600000);
-  let m = Math.floor((ms % 3600000) / 60000);
-  let s = Math.floor((ms % 60000) / 1000);
-  return `${h}h ${m}m ${s}s`;
-}
-
-if (!canPlay) {
-  timerDiv.textContent = `😎 You've already played. Come back in ${formatTime(timeLeft)}`;
-  input.disabled = true;
-  input.classList.add("disabled");
-  validate.disabled = true;
-}
-
-let timerInterval;
-if (!canPlay) {
-  timerInterval = setInterval(()=>{
-    timeLeft -= 1000;
-    if(timeLeft <= 0){
-      clearInterval(timerInterval);
-      location.reload(); // reload for new word
-    } else {
-      timerDiv.textContent = `😎 You've already played. Come back in ${formatTime(timeLeft)}`;
-    }
-  },1000);
-}
-
-/* ---------- GAME STATE ---------- */
 const maxTries = 3;
 let tries = 0;
 let emojis = [];
@@ -233,14 +198,22 @@ function renderStats(){
 }
 renderStats();
 
+/* ---------- CHECK IF USER PLAYED ---------- */
+const lastPlay = parseInt(localStorage.getItem("themeWordleLastPlay")||0,10);
+const nowTime = Date.now();
+if (nowTime - lastPlay < 12*3600000) {
+  input.disabled = true;
+  validate.disabled = true;
+  msg.textContent = "😎 You have already played today. Share with a friend and come back later.";
+}
+
 /* ---------- VALIDATE ---------- */
 validate.onclick = () => {
-  if(!canPlay) return;
   input.classList.remove("error");
-  input.classList.remove("success");
   msg.textContent = "";
 
   const guess = input.value.toUpperCase().trim();
+
   if (guess.length !== word.length) {
     msg.textContent = "Wrong length";
     return;
@@ -248,25 +221,31 @@ validate.onclick = () => {
 
   const row = board.children[tries];
 
+  // Fill the row regardless of word validity
+  let line = "";
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
-    if (guess[i] === word[i]) cell.classList.add("correct");
-    else if (word.includes(guess[i])) cell.classList.add("present");
-    else cell.classList.add("absent");
+    if (guess[i] === word[i]) {
+      cell.classList.add("correct"); line+="🟩";
+    } else if (word.includes(guess[i])) {
+      cell.classList.add("present"); line+="🟨";
+    } else {
+      cell.classList.add("absent"); line+="⬛";
+    }
   });
 
+  // Input feedback
+  if (guess !== word) input.classList.add("error");
+  else input.classList.add("correct");
+
+  emojis.push(line);
   tries++;
   input.value = "";
 
-  if (guess === word) {
-    input.classList.add("success");
-    endGame(true);
-  } else if (tries === maxTries) {
-    input.classList.add("error");
-    endGame(false);
-  } else {
-    if (guess !== word) input.classList.add("error");
-  }
+  localStorage.setItem("themeWordleLastPlay", Date.now());
+
+  if (guess === word) endGame(true);
+  else if (tries === maxTries) endGame(false);
 };
 
 /* ---------- END GAME ---------- */
