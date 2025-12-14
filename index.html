@@ -28,6 +28,16 @@ h1 { text-align:center; margin-bottom:8px; }
   font-size:1.1rem;
 }
 
+/* 👇 NEW: 2 clean visual lines */
+#timerLine {
+  font-weight:600;
+  margin-bottom:6px;
+}
+#themeLine {
+  opacity:0.9;
+  font-size:1rem;
+}
+
 .board {
   display:grid;
   gap:10px;
@@ -52,7 +62,6 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-/* ✅ INPUT + BUTTON UNIFORM, SMALLER */
 .controls {
   display:flex;
   justify-content:center;
@@ -94,20 +103,14 @@ button {
 
 .hidden { display:none; }
 
-/* 🎉 WIN ANIMATION */
-.win {
-  animation: pop 0.4s ease-out;
-}
+.win { animation: pop 1s ease-out; }
 @keyframes pop {
   0% { transform:scale(0.9); }
   60% { transform:scale(1.1); }
   100% { transform:scale(1); }
 }
 
-/* ❌ LOSE ANIMATION */
-.lose {
-  animation: shake 0.4s;
-}
+.lose { animation: shake 1s; }
 @keyframes shake {
   0% { transform:translateX(0); }
   25% { transform:translateX(-5px); }
@@ -123,7 +126,10 @@ button {
 
 <h1>Theme Wordle</h1>
 
-<div class="hint" id="hint">Loading…</div>
+<div class="hint">
+  <div id="timerLine">Loading…</div>
+  <div id="themeLine"></div>
+</div>
 
 <div class="board" id="board"></div>
 
@@ -148,13 +154,11 @@ button {
 <script src="themes.js"></script>
 
 <script>
-/* ---------- SAFETY CHECK ---------- */
 if (!Array.isArray(WORDS) || WORDS.length === 0) {
-  document.getElementById("hint").textContent = "ERROR: words not loaded";
+  document.getElementById("timerLine").textContent = "ERROR: words not loaded";
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- DETERMINISTIC INTERVAL WORD ---------- */
 const now = new Date();
 const hour = now.getHours();
 const intervalIndex = hour < 12 ? 0 : 1;
@@ -175,8 +179,9 @@ const wordObj = WORDS[Math.floor(rng(seed) * WORDS.length)];
 const word = wordObj.word.toUpperCase();
 const theme = wordObj.theme;
 
-/* ---------- UI ---------- */
-const hint = document.getElementById("hint");
+/* UI */
+const timerLine = document.getElementById("timerLine");
+const themeLine = document.getElementById("themeLine");
 const board = document.getElementById("board");
 const input = document.getElementById("input");
 const validate = document.getElementById("validate");
@@ -184,14 +189,14 @@ const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
 const app = document.querySelector(".app");
 
-hint.textContent = `HINT: ${theme} • ${word.length} letters`;
+themeLine.textContent = `HINT: ${theme} • ${word.length} letters`;
 
-/* ---------- GAME STATE ---------- */
+/* GAME STATE */
 const maxTries = 4;
 let tries = 0;
 let emojis = [];
 
-/* ---------- BOARD ---------- */
+/* BOARD */
 for (let i = 0; i < maxTries; i++) {
   const row = document.createElement("div");
   row.className = "row";
@@ -202,7 +207,7 @@ for (let i = 0; i < maxTries; i++) {
   board.appendChild(row);
 }
 
-/* ---------- STATS ---------- */
+/* STATS */
 const statsKey = "themeWordleStats";
 let stats = JSON.parse(localStorage.getItem(statsKey)) || {
   played:0, wins:0, streak:0
@@ -217,7 +222,7 @@ function renderStats(){
 }
 renderStats();
 
-/* ---------- BLOCK AFTER PLAY ---------- */
+/* BLOCK AFTER PLAY */
 const lastPlayKey = "lastPlayInterval";
 const currentIntervalKey = `${dateKey}-${intervalIndex}`;
 const lastPlayed = localStorage.getItem(lastPlayKey);
@@ -228,10 +233,9 @@ if (lastPlayed === currentIntervalKey) {
   msg.textContent = "😎 You've already played. Share to your friends and come back at the next word!";
 }
 
-/* ---------- VALIDATE ---------- */
+/* VALIDATE */
 validate.onclick = () => {
   if (input.disabled) return;
-
   msg.textContent = "";
   const guess = input.value.toUpperCase().trim();
   if (guess.length !== word.length) return;
@@ -258,7 +262,7 @@ validate.onclick = () => {
   else if (tries === maxTries) endGame(false);
 };
 
-/* ---------- END GAME ---------- */
+/* END GAME */
 function endGame(win){
   input.disabled = true;
   validate.disabled = true;
@@ -281,7 +285,7 @@ function endGame(win){
   renderStats();
 }
 
-/* ---------- SHARE ---------- */
+/* SHARE */
 copyBtn.onclick = () => {
   navigator.clipboard.writeText(
     `Theme Wordle\n${emojis.join("\n")}\nNo spoilers`
@@ -289,7 +293,7 @@ copyBtn.onclick = () => {
   msg.textContent = "Copied to clipboard!";
 };
 
-/* ---------- REAL-TIME TIMER ---------- */
+/* REAL-TIME TIMER (LINE 1 ONLY) */
 function updateTimer() {
   const now = new Date();
   let next = new Date(now);
@@ -305,7 +309,7 @@ function updateTimer() {
   const m = String(Math.floor(diff%3600000/60000)).padStart(2,'0');
   const s = String(Math.floor(diff%60000/1000)).padStart(2,'0');
 
-  hint.textContent = `Next word in ${h}:${m}:${s} • Theme: ${theme} • ${word.length} letters`;
+  timerLine.textContent = `⏳ Next word in ${h}:${m}:${s}`;
 }
 updateTimer();
 setInterval(updateTimer, 1000);
