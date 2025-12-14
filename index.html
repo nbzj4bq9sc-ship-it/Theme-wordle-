@@ -16,6 +16,9 @@ body {
 .app {
   max-width:420px;
   margin:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
 h1 { text-align:center; margin-bottom:8px; }
 
@@ -26,12 +29,14 @@ h1 { text-align:center; margin-bottom:8px; }
   text-align:center;
   margin-bottom:16px;
   font-size:1.1rem;
+  width:100%;
 }
 
 .board {
   display:grid;
   gap:10px;
   margin-bottom:16px;
+  width:100%;
 }
 .row {
   display:grid;
@@ -52,30 +57,32 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
+/* ---------- INPUT & BUTTON ---------- */
 input, button {
-  width:100%;
-  height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
   margin-bottom:10px;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-input:hover, button:hover {
-  transform: scale(1.03);
-  background:#2a2a2a;
+  width:calc(100% - 0px); /* full width */
+  max-width:300px; /* max width for mobile */
+  height:48px; /* same height for input & button */
+  display:block;
+  text-align:center;
+  box-sizing:border-box;
 }
 input.error {
   background:#3a1515;
   border:2px solid #ff5252;
   color:#ffb3b3;
 }
-
 button {
   font-weight:bold;
   cursor:pointer;
+  background:#1e1e1e;
+  color:#fff;
 }
 
+/* ---------- MSG & STATS ---------- */
 #msg {
   text-align:center;
   color:#fbc02d;
@@ -186,7 +193,7 @@ const playedToday = JSON.parse(localStorage.getItem("themeWordlePlayed")) || {};
 if (playedToday[dayIndex]) {
   input.disabled = true;
   validate.disabled = true;
-  msg.textContent = "🎯 You've already played today! Come back tomorrow.";
+  msg.textContent = " 😎 You've already played today! Share to a friend and come back tomorrow.";
 }
 
 /* ---------- VALIDATE ---------- */
