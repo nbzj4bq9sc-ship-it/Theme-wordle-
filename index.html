@@ -116,7 +116,6 @@ button {
 
 </div>
 
-<!-- ⚠️ IMPORTANT : themes.js AVANT le script principal -->
 <script src="themes.js"></script>
 
 <script>
@@ -126,26 +125,24 @@ if (!Array.isArray(WORDS) || WORDS.length === 0) {
   throw new Error("WORDS not loaded");
 }
 
-/* ---------- WORD OF THE INTERVAL ---------- */
+/* ---------- DETERMINISTIC INTERVAL WORD ---------- */
 const now = new Date();
 const hour = now.getHours();
-const intervalIndex = hour < 12 ? 0 : 1; // 0 = 00-12, 1 = 12-00
-const daySeed = Math.floor(Date.now()/86400000);
-const rng = (seed) => {
-  let x = Math.sin(seed)*10000;
+const intervalIndex = hour < 12 ? 0 : 1;
+
+const dateKey =
+  now.getFullYear() * 10000 +
+  (now.getMonth() + 1) * 100 +
+  now.getDate();
+
+const seed = dateKey * 2 + intervalIndex;
+
+function rng(seed) {
+  let x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
-};
+}
 
-/* Exclude last 30 words */
-const recent = JSON.parse(localStorage.getItem("recentWords")||"[]");
-let wordObj;
-do {
-  wordObj = WORDS[Math.floor(rng(daySeed + intervalIndex) * WORDS.length)];
-} while(recent.includes(wordObj.word));
-recent.push(wordObj.word);
-if (recent.length>30) recent.shift();
-localStorage.setItem("recentWords", JSON.stringify(recent));
-
+const wordObj = WORDS[Math.floor(rng(seed) * WORDS.length)];
 const word = wordObj.word.toUpperCase();
 const theme = wordObj.theme;
 
@@ -190,11 +187,22 @@ function renderStats(){
 }
 renderStats();
 
+/* ---------- BLOCK AFTER PLAY ---------- */
+const lastPlayKey = "lastPlayInterval";
+const currentIntervalKey = `${dateKey}-${intervalIndex}`;
+const lastPlayed = localStorage.getItem(lastPlayKey);
+
+if (lastPlayed === currentIntervalKey) {
+  input.disabled = true;
+  validate.disabled = true;
+  msg.textContent = "😎 You've already played. Share to your friends and come back at the next word!";
+}
+
 /* ---------- VALIDATE ---------- */
 validate.onclick = () => {
-  input.classList.remove("error");
-  msg.textContent = "";
+  if (input.disabled) return;
 
+  msg.textContent = "";
   const guess = input.value.toUpperCase().trim();
 
   if (guess.length !== word.length) {
@@ -203,9 +211,8 @@ validate.onclick = () => {
   }
 
   const row = board.children[tries];
-
-  /* PLACE GUESS IN GRID */
   let line = "";
+
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
     if (guess[i] === word[i]) {
@@ -220,10 +227,6 @@ validate.onclick = () => {
   emojis.push(line);
   tries++;
   input.value = "";
-
-  /* INPUT COLOR */
-  if(guess === word) input.style.background="#4caf50";
-  else input.style.background="#3a1515";
 
   if (guess === word) endGame(true);
   else if (tries === maxTries) endGame(false);
@@ -246,6 +249,7 @@ function endGame(win){
   }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
+  localStorage.setItem(lastPlayKey, currentIntervalKey);
   renderStats();
 }
 
@@ -257,29 +261,26 @@ copyBtn.onclick = () => {
   msg.textContent = "Copied to clipboard!";
 };
 
-/* ---------- INTERVAL TIMER ---------- */
-const nextInterval = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour<12?12:24,0,0);
-const timer = setInterval(()=>{
-  const remaining = nextInterval - new Date();
-  if(remaining<=0) {
-    clearInterval(timer);
-    location.reload();
-  } else {
-    const h = String(Math.floor(remaining/3600000)).padStart(2,'0');
-    const m = String(Math.floor((remaining%3600000)/60000)).padStart(2,'0');
-    const s = String(Math.floor((remaining%60000)/1000)).padStart(2,'0');
-    hint.textContent = `Next word in ${h}:${m}:${s} • Theme: ${theme} • ${word.length} letters`;
-  }
-},1000);
+/* ---------- REAL-TIME TIMER ---------- */
+function updateTimer() {
+  const now = new Date();
+  let next = new Date(now);
 
-/* ---------- PREVENT MULTIPLE PLAYS ---------- */
-const lastPlay = parseInt(localStorage.getItem("lastPlay")||"0");
-if(Date.now() - lastPlay < 0) {
-  input.disabled = true;
-  validate.disabled = true;
-  msg.textContent = "😎 You've already played. Share to your friends and come back at the next word!";
+  if (now.getHours() < 12) next.setHours(12,0,0,0);
+  else {
+    next.setDate(next.getDate()+1);
+    next.setHours(0,0,0,0);
+  }
+
+  const diff = next - now;
+  const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+  const m = String(Math.floor(diff%3600000/60000)).padStart(2,'0');
+  const s = String(Math.floor(diff%60000/1000)).padStart(2,'0');
+
+  hint.textContent = `Next word in ${h}:${m}:${s} • Theme: ${theme} • ${word.length} letters`;
 }
-localStorage.setItem("lastPlay", Date.now());
+updateTimer();
+setInterval(updateTimer, 1000);
 </script>
 
 </body>
