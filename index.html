@@ -28,15 +28,8 @@ h1 { text-align:center; margin-bottom:8px; }
   font-size:1.1rem;
 }
 
-/* 👇 NEW: 2 clean visual lines */
-#timerLine {
-  font-weight:600;
-  margin-bottom:6px;
-}
-#themeLine {
-  opacity:0.9;
-  font-size:1rem;
-}
+#timerLine { font-weight:600; margin-bottom:6px; }
+#themeLine { opacity:0.9; font-size:1rem; }
 
 .board {
   display:grid;
@@ -160,8 +153,7 @@ if (!Array.isArray(WORDS) || WORDS.length === 0) {
 }
 
 const now = new Date();
-const hour = now.getHours();
-const intervalIndex = hour < 12 ? 0 : 1;
+const intervalIndex = now.getHours() < 12 ? 0 : 1;
 
 const dateKey =
   now.getFullYear() * 10000 +
@@ -196,6 +188,10 @@ const maxTries = 4;
 let tries = 0;
 let emojis = [];
 
+/* STORAGE KEYS */
+const gameKey = `themeWordleGame-${dateKey}-${intervalIndex}`;
+const lastPlayKey = "lastPlayInterval";
+
 /* BOARD */
 for (let i = 0; i < maxTries; i++) {
   const row = document.createElement("div");
@@ -207,82 +203,108 @@ for (let i = 0; i < maxTries; i++) {
   board.appendChild(row);
 }
 
-/* STATS */
-const statsKey = "themeWordleStats";
-let stats = JSON.parse(localStorage.getItem(statsKey)) || {
-  played:0, wins:0, streak:0
-};
-
-function renderStats(){
-  document.getElementById("played").textContent = stats.played;
-  document.getElementById("wins").textContent = stats.wins;
-  document.getElementById("streak").textContent = stats.streak;
-  document.getElementById("rate").textContent =
-    stats.played ? Math.round(stats.wins / stats.played * 100) : 0;
-}
-renderStats();
-
-/* BLOCK AFTER PLAY */
-const lastPlayKey = "lastPlayInterval";
-const currentIntervalKey = `${dateKey}-${intervalIndex}`;
-const lastPlayed = localStorage.getItem(lastPlayKey);
-
-if (lastPlayed === currentIntervalKey) {
+/* RESTORE GAME */
+const savedGame = JSON.parse(localStorage.getItem(gameKey));
+if (savedGame) {
+  tries = savedGame.tries;
+  emojis = savedGame.emojis;
+  savedGame.rows.forEach((rowData, i) => {
+    const row = board.children[i];
+    rowData.forEach((cell, j) => {
+      const c = row.children[j];
+      c.textContent = cell.letter;
+      c.classList.add(cell.state);
+    });
+  });
   input.disabled = true;
   validate.disabled = true;
+  copyBtn.classList.remove("hidden");
   msg.textContent = "😎 You've already played. Share to your friends and come back at the next word!";
 }
 
 /* VALIDATE */
 validate.onclick = () => {
-  if (input.disabled) return;
   msg.textContent = "";
+  input.classList.remove("error");
+
   const guess = input.value.toUpperCase().trim();
+
+  if (guess.length > word.length) {
+    input.value = "";
+    input.placeholder = "Word too long";
+    input.classList.add("error");
+    return;
+  }
+
   if (guess.length !== word.length) return;
 
   const row = board.children[tries];
-  let line = "";
+  let line = [];
+  let emojiLine = "";
 
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
     if (guess[i] === word[i]) {
-      cell.classList.add("correct"); line+="🟩";
+      cell.classList.add("correct");
+      emojiLine+="🟩";
+      line.push({letter:guess[i], state:"correct"});
     } else if (word.includes(guess[i])) {
-      cell.classList.add("present"); line+="🟨";
+      cell.classList.add("present");
+      emojiLine+="🟨";
+      line.push({letter:guess[i], state:"present"});
     } else {
-      cell.classList.add("absent"); line+="⬛";
+      cell.classList.add("absent");
+      emojiLine+="⬛";
+      line.push({letter:guess[i], state:"absent"});
     }
   });
 
-  emojis.push(line);
+  emojis.push(emojiLine);
   tries++;
+
+  saveGame();
+
   input.value = "";
 
   if (guess === word) endGame(true);
   else if (tries === maxTries) endGame(false);
 };
 
+input.oninput = () => {
+  input.classList.remove("error");
+  input.placeholder = "Word";
+};
+
+/* SAVE GAME */
+function saveGame() {
+  const rows = [];
+  for (let i = 0; i < tries; i++) {
+    const row = board.children[i];
+    const rowData = [...row.children].map(c => ({
+      letter: c.textContent,
+      state: c.classList.contains("correct") ? "correct"
+           : c.classList.contains("present") ? "present"
+           : "absent"
+    }));
+    rows.push(rowData);
+  }
+  localStorage.setItem(gameKey, JSON.stringify({ tries, emojis, rows }));
+}
+
 /* END GAME */
 function endGame(win){
   input.disabled = true;
   validate.disabled = true;
   copyBtn.classList.remove("hidden");
+  localStorage.setItem(lastPlayKey, `${dateKey}-${intervalIndex}`);
 
-  stats.played++;
   if (win) {
-    stats.wins++;
-    stats.streak++;
     msg.textContent = "You win!";
     app.classList.add("win");
   } else {
-    stats.streak = 0;
     msg.textContent = `Word was: ${word}`;
     app.classList.add("lose");
   }
-
-  localStorage.setItem(statsKey, JSON.stringify(stats));
-  localStorage.setItem(lastPlayKey, currentIntervalKey);
-  renderStats();
 }
 
 /* SHARE */
@@ -293,7 +315,7 @@ copyBtn.onclick = () => {
   msg.textContent = "Copied to clipboard!";
 };
 
-/* REAL-TIME TIMER (LINE 1 ONLY) */
+/* TIMER */
 function updateTimer() {
   const now = new Date();
   let next = new Date(now);
