@@ -52,16 +52,21 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
+/* ✅ INPUT + BUTTON UNIFORM, SMALLER */
+.controls {
+  display:flex;
+  justify-content:center;
+  gap:8px;
+}
+
 input, button {
-  width:48%;
-  height:56px;
-  font-size:1.2rem;
+  width:140px;
+  height:44px;
+  font-size:1rem;
   border-radius:10px;
   border:none;
-  margin-bottom:10px;
-  display:inline-block;
-  vertical-align:middle;
 }
+
 input.error {
   background:#3a1515;
   border:2px solid #ff5252;
@@ -88,6 +93,28 @@ button {
 }
 
 .hidden { display:none; }
+
+/* 🎉 WIN ANIMATION */
+.win {
+  animation: pop 0.4s ease-out;
+}
+@keyframes pop {
+  0% { transform:scale(0.9); }
+  60% { transform:scale(1.1); }
+  100% { transform:scale(1); }
+}
+
+/* ❌ LOSE ANIMATION */
+.lose {
+  animation: shake 0.4s;
+}
+@keyframes shake {
+  0% { transform:translateX(0); }
+  25% { transform:translateX(-5px); }
+  50% { transform:translateX(5px); }
+  75% { transform:translateX(-5px); }
+  100% { transform:translateX(0); }
+}
 </style>
 </head>
 
@@ -100,8 +127,10 @@ button {
 
 <div class="board" id="board"></div>
 
-<input id="input" placeholder="Type your word" />
-<button id="validate">Validate</button>
+<div class="controls">
+  <input id="input" placeholder="Word" />
+  <button id="validate">Validate</button>
+</div>
 
 <div id="msg"></div>
 
@@ -153,6 +182,7 @@ const input = document.getElementById("input");
 const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
+const app = document.querySelector(".app");
 
 hint.textContent = `HINT: ${theme} • ${word.length} letters`;
 
@@ -204,11 +234,7 @@ validate.onclick = () => {
 
   msg.textContent = "";
   const guess = input.value.toUpperCase().trim();
-
-  if (guess.length !== word.length) {
-    msg.textContent = "Wrong length";
-    return;
-  }
+  if (guess.length !== word.length) return;
 
   const row = board.children[tries];
   let line = "";
@@ -243,9 +269,11 @@ function endGame(win){
     stats.wins++;
     stats.streak++;
     msg.textContent = "You win!";
+    app.classList.add("win");
   } else {
     stats.streak = 0;
     msg.textContent = `Word was: ${word}`;
+    app.classList.add("lose");
   }
 
   localStorage.setItem(statsKey, JSON.stringify(stats));
