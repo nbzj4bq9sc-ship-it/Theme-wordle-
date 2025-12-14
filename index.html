@@ -12,16 +12,18 @@ body {
   font-family:system-ui;
   margin:0;
   padding:16px;
+  display:flex;
+  justify-content:center;
 }
 .app {
   max-width:420px;
-  margin:auto;
+  width:100%;
 }
 h1 { text-align:center; margin-bottom:8px; }
 
 .hint {
   background:#1e1e1e;
-  padding:14px;
+  padding:12px;
   border-radius:10px;
   text-align:center;
   margin-bottom:16px;
@@ -52,21 +54,27 @@ h1 { text-align:center; margin-bottom:8px; }
 .present { background:#fbc02d; color:black; border:none; }
 .absent  { background:#555; border:none; }
 
-input, button {
-  width:100%;
+.input-group {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+input {
+  flex:1;
   height:56px;
   font-size:1.2rem;
   border-radius:10px;
   border:none;
-  margin-bottom:10px;
-  box-sizing: border-box;
-  text-align:center;
   padding:0 12px;
+  text-align:center;
+  box-sizing:border-box;
 }
-
 button {
+  height:56px;
   font-weight:bold;
   cursor:pointer;
+  border-radius:10px;
+  flex:1;
 }
 
 #msg {
@@ -96,8 +104,10 @@ button {
 
 <div class="board" id="board"></div>
 
-<input id="input" placeholder="Type your word" />
-<button id="validate">Validate</button>
+<div class="input-group">
+  <input id="input" placeholder="Type your word" />
+  <button id="validate">Validate</button>
+</div>
 
 <div id="msg"></div>
 
@@ -150,7 +160,7 @@ for (let i = 0; i < maxTries; i++) {
 
 const statsKey = "themeWordleStats";
 let stats = JSON.parse(localStorage.getItem(statsKey)) || {
-  played:0, wins:0, streak:0
+  played:0, wins:0, streak:0, lastDay:-1
 };
 
 function renderStats(){
@@ -162,14 +172,20 @@ function renderStats(){
 }
 renderStats();
 
+// CHECK IF ALREADY PLAYED TODAY
+if(stats.lastDay === dayIndex){
+  input.disabled = true;
+  validate.disabled = true;
+  msg.textContent = " 😎 You already played today! Share your score to a friend and comeback tomorrow.";
+  copyBtn.classList.remove("hidden");
+}
+
 function isValidWord(w){
   return WORDS.some(x => x.word === w);
 }
 
 validate.onclick = () => {
-  input.classList.remove("error");
   msg.textContent = "";
-
   const guess = input.value.toUpperCase().trim();
   if(guess.length !== word.length) {
     msg.textContent = "Wrong length";
@@ -178,7 +194,7 @@ validate.onclick = () => {
 
   const row = board.children[tries];
 
-  // EVEN IF WORD INVALID: show correct/present/absent colors
+  // Show correct/present/absent colors even if word not in list
   let line = "";
   [...row.children].forEach((cell,i)=>{
     cell.textContent = guess[i];
@@ -205,10 +221,12 @@ function endGame(win){
   copyBtn.classList.remove("hidden");
 
   stats.played++;
+  stats.lastDay = dayIndex;
+
   if(win){
     stats.wins++;
     stats.streak++;
-    msg.textContent = "You win!";
+    msg.textContent = "🎉 You win!";
   } else {
     stats.streak = 0;
     msg.textContent = `Word was: ${word}`;
