@@ -59,6 +59,7 @@ h1 { text-align:center; margin-bottom:8px; }
   display:flex;
   justify-content:center;
   gap:8px;
+  margin-bottom:12px;
 }
 
 input, button {
@@ -126,6 +127,36 @@ button {
   75% { transform:translateX(-5px); }
   100% { transform:translateX(0); }
 }
+
+/* AZERTY KEYBOARD */
+#keyboard {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  margin-bottom:16px;
+}
+.keyboard-row {
+  display:flex;
+  gap:6px;
+}
+.key {
+  width:32px;
+  height:44px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border-radius:6px;
+  background:#1e1e1e;
+  color:#fff;
+  font-weight:bold;
+  cursor:default;
+  user-select:none;
+  font-size:1rem;
+}
+.key.correct { background:#4caf50; color:#fff; }
+.key.present { background:#fbc02d; color:black; }
+.key.absent { background:#555; color:#ccc; }
 </style>
 </head>
 
@@ -145,6 +176,9 @@ button {
   <input id="input" placeholder="Word" />
   <button id="validate">Validate</button>
 </div>
+
+<!-- AZERTY KEYBOARD -->
+<div id="keyboard"></div>
 
 <div id="msg"></div>
 
@@ -187,6 +221,7 @@ const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
 const app = document.querySelector(".app");
+const keyboardEl = document.getElementById("keyboard");
 
 themeLine.textContent = `HINT: ${theme} • ${word.length} letters`;
 
@@ -194,6 +229,7 @@ themeLine.textContent = `HINT: ${theme} • ${word.length} letters`;
 const maxTries = 4;
 let tries = 0;
 let emojis = [];
+let usedKeys = {}; // Tracks letter states
 
 /* STORAGE KEYS */
 const gameKey = `themeWordleGame-${dateKey}-${intervalIndex}`;
@@ -217,6 +253,35 @@ for(let i=0;i<maxTries;i++){
   row.style.gridTemplateColumns=`repeat(${word.length},1fr)`;
   for(let j=0;j<word.length;j++){ row.appendChild(document.createElement("div")).className="cell"; }
   board.appendChild(row);
+}
+
+/* AZERTY KEYBOARD LAYOUT */
+const layout = [
+  ['A','Z','E','R','T','Y','U','I','O','P'],
+  ['Q','S','D','F','G','H','J','K','L','M'],
+  ['W','X','C','V','B','N']
+];
+layout.forEach(row=>{
+  const rowEl = document.createElement("div");
+  rowEl.className="keyboard-row";
+  row.forEach(letter=>{
+    const keyEl = document.createElement("div");
+    keyEl.textContent = letter;
+    keyEl.className="key";
+    rowEl.appendChild(keyEl);
+  });
+  keyboardEl.appendChild(rowEl);
+});
+
+/* UPDATE KEYBOARD COLORS */
+function updateKeyboard(guess){
+  [...guess].forEach((l,i)=>{
+    const state = (word[i]===l)?'correct':(word.includes(l)?'present':'absent');
+    if(!usedKeys[l] || usedKeys[l]!=='correct') usedKeys[l] = state;
+  });
+  document.querySelectorAll("#keyboard .key").forEach(k=>{
+    if(usedKeys[k.textContent]) k.className = "key " + usedKeys[k.textContent];
+  });
 }
 
 /* RESTORE GAME */
@@ -273,6 +338,7 @@ validate.onclick = ()=>{
 
   emojis.push(emojiLine);
   tries++;
+  updateKeyboard(guess);
   saveGame();
   input.value="";
 
