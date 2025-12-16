@@ -62,20 +62,6 @@ h1 { text-align:center; margin-bottom:8px; }
   margin-bottom:12px;
 }
 
-input, button {
-  width:140px;
-  height:44px;
-  font-size:1rem;
-  border-radius:10px;
-  border:none;
-}
-
-input.error {
-  background:#3a1515;
-  border:2px solid #ff5252;
-  color:#ffb3b3;
-}
-
 button {
   font-weight:bold;
   cursor:pointer;
@@ -128,13 +114,13 @@ button {
   100% { transform:translateX(0); }
 }
 
-/* AZERTY KEYBOARD */
+/* QWERTY KEYBOARD */
 #keyboard {
   display:flex;
   flex-direction:column;
   align-items:center;
   gap:6px;
-  margin-bottom:16px;
+  margin-bottom:12px;
 }
 .keyboard-row {
   display:flex;
@@ -150,7 +136,7 @@ button {
   background:#1e1e1e;
   color:#fff;
   font-weight:bold;
-  cursor:default;
+  cursor:pointer;
   user-select:none;
   font-size:1rem;
 }
@@ -172,12 +158,7 @@ button {
 
 <div class="board" id="board"></div>
 
-<div class="controls">
-  <input id="input" placeholder="Word" />
-  <button id="validate">Validate</button>
-</div>
-
-<!-- AZERTY KEYBOARD -->
+<!-- QWERTY KEYBOARD -->
 <div id="keyboard"></div>
 
 <div id="msg"></div>
@@ -216,8 +197,6 @@ const theme = wordObj.theme;
 const timerLine = document.getElementById("timerLine");
 const themeLine = document.getElementById("themeLine");
 const board = document.getElementById("board");
-const input = document.getElementById("input");
-const validate = document.getElementById("validate");
 const msg = document.getElementById("msg");
 const copyBtn = document.getElementById("copy");
 const app = document.querySelector(".app");
@@ -229,6 +208,7 @@ themeLine.textContent = `HINT: ${theme} • ${word.length} letters`;
 const maxTries = 4;
 let tries = 0;
 let emojis = [];
+let currentGuess = "";
 let usedKeys = {}; // Tracks letter states
 
 /* STORAGE KEYS */
@@ -255,11 +235,12 @@ for(let i=0;i<maxTries;i++){
   board.appendChild(row);
 }
 
-/* AZERTY KEYBOARD LAYOUT */
+/* QWERTY KEYBOARD LAYOUT */
 const layout = [
-  ['A','Z','E','R','T','Y','U','I','O','P'],
-  ['Q','S','D','F','G','H','J','K','L','M'],
-  ['W','X','C','V','B','N']
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Z','X','C','V','B','N','M'],
+  ['ENTER','BACK']
 ];
 layout.forEach(row=>{
   const rowEl = document.createElement("div");
@@ -269,9 +250,68 @@ layout.forEach(row=>{
     keyEl.textContent = letter;
     keyEl.className="key";
     rowEl.appendChild(keyEl);
+    keyEl.onclick = ()=>handleKey(letter);
   });
   keyboardEl.appendChild(rowEl);
 });
+
+/* KEY HANDLER */
+function handleKey(key){
+  if(key==="BACK"){
+    currentGuess = currentGuess.slice(0,-1);
+    renderCurrentGuess();
+  } else if(key==="ENTER"){
+    submitGuess();
+  } else if(currentGuess.length < word.length){
+    currentGuess += key;
+    renderCurrentGuess();
+  }
+}
+
+function renderCurrentGuess(){
+  const row = board.children[tries];
+  [...row.children].forEach((cell,i)=>{
+    cell.textContent = currentGuess[i] || "";
+    cell.className = "cell";
+  });
+}
+
+/* SUBMIT GUESS */
+function submitGuess(){
+  msg.textContent = "";
+  if(currentGuess.length>word.length){
+    msg.textContent = "⚠️ Word too long!";
+    return;
+  }
+  if(currentGuess.length!==word.length) return;
+
+  const row=board.children[tries];
+  let line=[];
+  let emojiLine="";
+
+  [...row.children].forEach((cell,i)=>{
+    cell.textContent=currentGuess[i];
+    if(currentGuess[i]===word[i]){
+      cell.classList.add("correct"); emojiLine+="🟩";
+      line.push({letter:currentGuess[i],state:"correct"});
+    }else if(word.includes(currentGuess[i])){
+      cell.classList.add("present"); emojiLine+="🟨";
+      line.push({letter:currentGuess[i],state:"present"});
+    }else{
+      cell.classList.add("absent"); emojiLine+="⬛";
+      line.push({letter:currentGuess[i],state:"absent"});
+    }
+  });
+
+  emojis.push(emojiLine);
+  tries++;
+  updateKeyboard(currentGuess);
+  saveGame();
+  currentGuess="";
+
+  if(row.textContent===word) endGame(true);
+  else if(tries===maxTries) endGame(false);
+}
 
 /* UPDATE KEYBOARD COLORS */
 function updateKeyboard(guess){
@@ -297,59 +337,14 @@ if(savedGame){
       c.classList.add(cell.state);
     });
   });
-  input.disabled=true;
-  validate.disabled=true;
-  copyBtn.classList.remove("hidden");
-  msg.textContent="😎 You've already played. Share to your friends and come back at the next word!";
-}
-
-/* VALIDATE */
-validate.onclick = ()=>{
-  msg.textContent="";
-  input.classList.remove("error");
-  const guess=input.value.toUpperCase().trim();
-
-  if(guess.length>word.length){
-    input.value="";
-    input.placeholder="Word too long";
-    input.classList.add("error");
-    msg.textContent = "⚠️ Word too long!";
-    return;
-  }
-  if(guess.length!==word.length) return;
-
-  const row=board.children[tries];
-  let line=[];
-  let emojiLine="";
-
-  [...row.children].forEach((cell,i)=>{
-    cell.textContent=guess[i];
-    if(guess[i]===word[i]){
-      cell.classList.add("correct"); emojiLine+="🟩";
-      line.push({letter:guess[i],state:"correct"});
-    }else if(word.includes(guess[i])){
-      cell.classList.add("present"); emojiLine+="🟨";
-      line.push({letter:guess[i],state:"present"});
-    }else{
-      cell.classList.add("absent"); emojiLine+="⬛";
-      line.push({letter:guess[i],state:"absent"});
+  currentGuess="";
+  document.querySelectorAll("#keyboard .key").forEach(k=>{
+    if(k.textContent!=="ENTER" && k.textContent!=="BACK"){
+      usedKeys[k.textContent] = k.classList.contains("correct")?"correct":k.classList.contains("present")?"present":k.classList.contains("absent")?"absent":undefined;
     }
   });
-
-  emojis.push(emojiLine);
-  tries++;
-  updateKeyboard(guess);
-  saveGame();
-  input.value="";
-
-  if(guess===word) endGame(true);
-  else if(tries===maxTries) endGame(false);
-};
-
-input.oninput=()=>{
-  input.classList.remove("error");
-  input.placeholder="Word";
-};
+  msg.textContent="😎 You've already played. Share to your friends and come back at the next word!";
+}
 
 /* SAVE GAME */
 function saveGame(){
@@ -369,8 +364,7 @@ function saveGame(){
 
 /* END GAME */
 function endGame(win){
-  input.disabled=true;
-  validate.disabled=true;
+  document.querySelectorAll(".key").forEach(k=>k.onclick=null);
   copyBtn.classList.remove("hidden");
   localStorage.setItem(lastPlayKey,`${dateKey}-${intervalIndex}`);
 
