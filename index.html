@@ -143,6 +143,12 @@ button {
 .key.correct { background:#4caf50; color:#fff; }
 .key.present { background:#fbc02d; color:black; }
 .key.absent { background:#555; color:#ccc; }
+
+/* ENTER & BACK BIGGER */
+.key.enter, .key.back {
+  min-width:60px;
+  font-size:0.85rem;
+}
 </style>
 </head>
 
@@ -249,6 +255,8 @@ layout.forEach(row=>{
     const keyEl = document.createElement("div");
     keyEl.textContent = letter;
     keyEl.className="key";
+    if(letter==="ENTER") keyEl.classList.add("enter");
+    if(letter==="BACK") keyEl.classList.add("back");
     rowEl.appendChild(keyEl);
     keyEl.onclick = ()=>handleKey(letter);
   });
@@ -321,6 +329,8 @@ function updateKeyboard(guess){
   });
   document.querySelectorAll("#keyboard .key").forEach(k=>{
     if(usedKeys[k.textContent]) k.className = "key " + usedKeys[k.textContent];
+    if(k.textContent==="ENTER") k.classList.add("enter");
+    if(k.textContent==="BACK") k.classList.add("back");
   });
 }
 
